@@ -29,12 +29,20 @@ def load_and_clean_data(file_path):
     df_clean = df_clean[df_clean["Option"].notna()]
     df_clean = df_clean[df_clean["Long-Run Change in GDP"].notna()]
     
-    # Convert relevant columns to numeric
-    cols_to_convert = [
+    # Convert all numeric columns
+    numeric_cols = [
         "Long-Run Change in GDP",
+        "Capital Stock",
+        "Full-Time Equivalent Jobs",
+        "Wage Rate",
+        "P20",
+        "P40-60",
+        "P80-100",
+        "P99",
+        "Static 10-Year Revenue (billions)",
         "Dynamic 10-Year Revenue (billions)"
     ]
-    df_clean[cols_to_convert] = df_clean[cols_to_convert].apply(pd.to_numeric, errors='coerce')
+    df_clean[numeric_cols] = df_clean[numeric_cols].apply(pd.to_numeric, errors='coerce')
     
     print(f"✓ Loaded {len(df_clean)} policy options\n")
     return df_clean
@@ -81,17 +89,11 @@ def optimize_policy_selection(df_clean, verbose=True):
     model_2.setObjective(quicksum(revenue[i] * x2[i] for i in range(n)), GRB.MAXIMIZE)
     model_2.optimize()
     
-    # Extract solution
-    selected_policies = []
-    for i in range(n):
-        if x2[i].X > 0.5:
-            selected_policies.append({
-                "Policy": policy_names[i],
-                "GDP Impact (%)": gdp[i],
-                "Revenue Impact ($B)": revenue[i]
-            })
+    # Extract solution and all metrics for selected policies
+    selected_indices = [i for i in range(n) if x2[i].X > 0.5]
+    selected_df = df_clean.iloc[selected_indices].copy()
     
-    return pd.DataFrame(selected_policies), best_gdp, model_2.ObjVal
+    return selected_df, best_gdp, model_2.ObjVal
 
 
 def display_results(result_df, gdp_impact, revenue_impact):
@@ -100,34 +102,54 @@ def display_results(result_df, gdp_impact, revenue_impact):
     print("OPTIMIZATION RESULTS".center(80))
     print("="*80)
     
-    print(f"\n{'SUMMARY':^80}")
-    print("-"*80)
-    print(f"  Maximum GDP Impact:        {gdp_impact:>8.4f}%")
-    print(f"  Total Revenue Impact:      ${revenue_impact:>8.2f} billion")
-    print(f"  Number of Policies:        {len(result_df):>8}")
-    print("-"*80)
-    
     # Separate policies by positive/negative revenue impact
-    positive_revenue = result_df[result_df["Revenue Impact ($B)"] >= 0].copy()
-    negative_revenue = result_df[result_df["Revenue Impact ($B)"] < 0].copy()
+    positive_revenue = result_df[result_df["Dynamic 10-Year Revenue (billions)"] >= 0].copy()
+    negative_revenue = result_df[result_df["Dynamic 10-Year Revenue (billions)"] < 0].copy()
     
     # Sort by absolute impact
-    positive_revenue = positive_revenue.sort_values("Revenue Impact ($B)", ascending=False)
-    negative_revenue = negative_revenue.sort_values("Revenue Impact ($B)", ascending=True)
+    positive_revenue = positive_revenue.sort_values("Dynamic 10-Year Revenue (billions)", ascending=False)
+    negative_revenue = negative_revenue.sort_values("Dynamic 10-Year Revenue (billions)", ascending=True)
     
     if len(positive_revenue) > 0:
         print(f"\n{'REVENUE RAISING POLICIES':^80}")
         print("-"*80)
         for _, row in positive_revenue.iterrows():
-            print(f"  {row['Policy'][:70]:<70}")
-            print(f"    GDP: {row['GDP Impact (%)']:>+7.4f}%  |  Revenue: ${row['Revenue Impact ($B)']:>8.2f}B")
+            print(f"  {row['Option'][:70]:<70}")
+            print(f"    GDP: {row['Long-Run Change in GDP'] * 100:>+7.4f}%  |  Revenue: ${row['Dynamic 10-Year Revenue (billions)']:>8.2f}B")
     
     if len(negative_revenue) > 0:
         print(f"\n{'REVENUE REDUCING POLICIES':^80}")
         print("-"*80)
         for _, row in negative_revenue.iterrows():
-            print(f"  {row['Policy'][:70]:<70}")
-            print(f"    GDP: {row['GDP Impact (%)']:>+7.4f}%  |  Revenue: ${row['Revenue Impact ($B)']:>8.2f}B")
+            print(f"  {row['Option'][:70]:<70}")
+            print(f"    GDP: {row['Long-Run Change in GDP'] * 100:>+7.4f}%  |  Revenue: ${row['Dynamic 10-Year Revenue (billions)']:>8.2f}B")
+    
+    # Calculate totals for all metrics
+    print("\n" + "="*80)
+    print("FINAL SUMMARY - TOTAL IMPACT OF SELECTED POLICIES".center(80))
+    print("="*80)
+    print(f"\n{'Economic Impacts':^80}")
+    print("-"*80)
+    print(f"  Long-Run Change in GDP:              {result_df['Long-Run Change in GDP'].sum() * 100:>+8.4f}%")
+    print(f"  Capital Stock:                       {result_df['Capital Stock'].sum() * 100:>+8.4f}%")
+    print(f"  Full-Time Equivalent Jobs:           {result_df['Full-Time Equivalent Jobs'].sum():>+10,.0f}")
+    print(f"  Wage Rate:                           {result_df['Wage Rate'].sum() * 100:>+8.4f}%")
+    
+    print(f"\n{'After-Tax Income Changes (by Income Percentile)':^80}")
+    print("-"*80)
+    print(f"  P20 (Bottom 20%):                    {result_df['P20'].sum() * 100:>+8.4f}%")
+    print(f"  P40-60 (Middle Class):               {result_df['P40-60'].sum() * 100:>+8.4f}%")
+    print(f"  P80-100 (Top 20%):                   {result_df['P80-100'].sum() * 100:>+8.4f}%")
+    print(f"  P99 (Top 1%):                        {result_df['P99'].sum() * 100:>+8.4f}%")
+    
+    print(f"\n{'Revenue Impacts':^80}")
+    print("-"*80)
+    print(f"  Static 10-Year Revenue:              ${result_df['Static 10-Year Revenue (billions)'].sum():>10.2f} billion")
+    print(f"  Dynamic 10-Year Revenue:             ${result_df['Dynamic 10-Year Revenue (billions)'].sum():>10.2f} billion")
+    
+    print(f"\n{'Policy Count':^80}")
+    print("-"*80)
+    print(f"  Number of Selected Policies:         {len(result_df):>10}")
     
     print("\n" + "="*80 + "\n")
 
