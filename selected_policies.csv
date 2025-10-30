@@ -1,0 +1,44 @@
+Policy,GDP Impact (%),Revenue Impact ($B)
+1: Lower Individual Income Tax Rates Across the Board (Lower All Rates by 10%),0.009,-1713.77
+2: Lower the Top Marginal Income Tax Rate (25% Top Rate),0.011,-1673.87
+"3: Consolidate Current Brackets into Three: 10 percent, 25 percent, and 35 percent",0.013,-2167.24
+4: Reduce Employer- and Employee-Side Payroll Tax by 1 Percentage Point Split (1 Percentage Point Split),0.002,-545.44
+5: Lower the Top Rate on Capital Gains and Dividends to 15 Percent,0.0005,-148.73
+6: Index Capital Gains Realizations to Inflation,0.0005,-143.4
+7: Make 100 Percent Bonus Depreciation Permanent,0.005,-110.19
+8: Implement Neutral Cost Recovery for Structures,0.012,300.98
+9: Cancel the Amortization of Research and Development Expenses,0.001,-107.9
+10: Make Section 199A Deduction Permanent,0.002,-391.2
+11: Lower the Corporate Tax Rate (Lower to 15%),0.005,-847.71
+12: Lower the Estate Tax Rate to 30 Percent,0.0005,-79.47
+"51: Double EITC for Workers without Qualifying Children to $1,075",0.0005,-34.32
+"52: Reform the EITC for Married and Unmarried Workers, with and without Children",0.001,-105.71
+"S1: Free, universal pre-kindergarten for all three- and four-year olds",0.009,-200.0
+S2: Tuition-free two-year community college,0.011,-109.0
+S3: Increase Pell Grants for low-income students,0.013,-80.0
+S4: Increase funding for community colleges,0.002,-62.0
+"S5: Two-years of subsidized tuition for students from families earning less than $125,000 enrolled in a four-year HBCU, TCU, or MSI",0.0005,-39.0
+"S6: Train, equip, and diversify American teachers",0.0005,-9.0
+"S7: Increase institutional aid grants to HBCUs, TCUs, and MSIs",0.005,-5.0
+"S8: Make child care more affordable, invest in high-quality care, and fund training for child care providers",0.012,-2.0
+S9: Create a national comprehensive paid family and medical leave program,0.001,-225.0
+S10: Expand summer Electronic Benefits Transfer to all eligible children nationwide,0.002,-25.0
+S11: Expand free meals for children in the highest poverty districts,0.005,-17.0
+S12: Facilitate re-entry for formerly incarcerated individuals through Supplemental Nutritional Assistance Program (SNAP) eligibility,0.0005,-10.0
+S17: Cancel student loan debt relief (Biden executive action),0.0,400.0
+15: Repeal the Tax Cuts and Jobs Act (TCJA) Individual Tax Changes,0.0,648.75
+19: Eliminate the Child Tax Credit,0.001,917.22
+20: Reduce the Child Tax Credit to $500,0.0005,585.22
+21: Eliminate the Earned Income Tax Credit,0.002,772.99
+25: Eliminate the Charitable Deduction,-0.001,694.52
+38: Eliminate the Section 199A Deduction,-0.0005,200.28
+46: Lower the Estate and Gift Tax Exemption Amount to $2 Million,-0.0005,332.1
+48: Increase the Gas Tax by 35 Cents Per Gallon and Inflation Adjust Going Forward,-0.001,653.12
+49: Reinstate the Cadillac Tax,-0.0005,215.55
+59: Tax Individual Incomes at a Flat 30% Rate (20% Flat Tax),0.013,1625.93
+61: Permanently Eliminate the Pease Limitation on Itemized Deductions,0.001,-125.58
+65: Enact Full Expensing for All Capital Investment,0.023,-1166.66
+66: Maintain Limitation on Interest Deductibility at 30 Percent of EBITDA,0.001,-45.9
+67: Eliminate Various Business Tax Expenditures,-0.002,926.43
+68: Replace the Corporate Income Tax with a 5 Percent Value-Added Tax (VAT),0.004,2349.32
+69: Eliminate Estate and Gift Taxes,0.001,-267.1
