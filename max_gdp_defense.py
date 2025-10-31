@@ -46,7 +46,7 @@ def optimize_policy_selection(
     ns_strict_indices: list,
     min_ns_spending: int = DEFENSE_SPENDING["baseline"],
     verbose: bool = True
-) -> Tuple[pd.DataFrame, float, float]:
+) -> Tuple[pd.DataFrame, float, float, dict]:
     """
     Two-stage optimization with equity and national security constraints.
     
@@ -76,10 +76,11 @@ def optimize_policy_selection(
         verbose: If True, prints progress messages
         
     Returns:
-        tuple: (selected_df, gdp_impact, revenue_impact)
+        tuple: (selected_df, gdp_impact, revenue_impact, kpi_dict)
             - selected_df: DataFrame of selected policies
             - gdp_impact: Total GDP impact achieved
             - revenue_impact: Total revenue impact achieved
+            - kpi_dict: Dictionary of all KPI values
     """
     # Extract data arrays from DataFrame for optimization
     n = len(df)
@@ -279,17 +280,34 @@ def optimize_policy_selection(
     selected_indices = [i for i in indices if x2[i].X > 0.5]
     selected_df = df.iloc[selected_indices].copy()
     
-    return selected_df, gdp_star, stage2_model.ObjVal
+    # Calculate KPI values
+    kpi_dict = {
+        'GDP': gdp_star,
+        'Revenue': stage2_model.ObjVal,
+        'Capital': sum(selected_df[COLUMNS["capital"]]),
+        'Jobs': sum(selected_df[COLUMNS["jobs"]]),
+        'Wage': sum(selected_df[COLUMNS["wage"]]),
+        'P20': sum(selected_df[COLUMNS["p20"]]),
+        'P40-60': sum(selected_df[COLUMNS["p40_60"]]),
+        'P80-100': sum(selected_df[COLUMNS["p80_100"]]),
+        'P99': sum(selected_df[COLUMNS["p99"]])
+    }
+    
+    return selected_df, gdp_star, stage2_model.ObjVal, kpi_dict
 
 
-def run_single_optimization(spending_level: int) -> None:
-    """Run optimization for a single spending level."""
+def run_single_optimization(spending_level: int) -> Tuple[pd.DataFrame, dict]:
+    """Run optimization for a single spending level.
+    
+    Returns:
+        tuple: (result_df, kpi_dict) for aggregation in run_full_range
+    """
     # Load and clean data
     df, ns_groups = load_policy_data()
     ns_strict_indices = get_ns_strict_indices(df)
     
     # Run optimization with specified spending level
-    result_df, gdp_impact, revenue_impact = optimize_policy_selection(
+    result_df, gdp_impact, revenue_impact, kpi_dict = optimize_policy_selection(
         df, ns_groups, ns_strict_indices, min_ns_spending=spending_level
     )
     
@@ -300,6 +318,8 @@ def run_single_optimization(spending_level: int) -> None:
     output_file = f"outputs/defense/max_gdp_defense{spending_level}.csv"
     result_df.to_csv(output_file, index=False)
     print(f"Results saved to '{output_file}'\n")
+    
+    return result_df, kpi_dict
 
 
 def run_full_range() -> None:
@@ -313,28 +333,41 @@ def run_full_range() -> None:
     print("Generating optimization results for full defense spending range...")
     print("=" * 70)
     
+    # Load policy data once to get all policy names
+    df, ns_groups = load_policy_data()
+    ns_strict_indices = get_ns_strict_indices(df)
+    all_policy_names = df[COLUMNS["option"]].tolist()
+    
+    # Initialize data structures for summary outputs
+    policy_decisions = {}  # {spending_level: {policy_name: 0 or 1}}
+    kpi_summary = {}  # {spending_level: {kpi_name: value}}
+    
     successful_runs = []
     failed_runs = []
     
     for level in spending_levels:
         print(f"\nRunning optimization for ${level:,}B defense spending...")
         try:
-            result = subprocess.run(
-                [sys.executable, __file__, "--spending", str(level)],
-                capture_output=True,
-                text=True,
-                check=True
-            )
+            # Run optimization directly (not via subprocess)
+            result_df, kpi_dict = run_single_optimization(level)
+            
             successful_runs.append(level)
             print(f"[OK] Successfully generated max_gdp_defense{level}.csv")
-            # Print key output lines
-            for line in result.stdout.split('\n'):
-                if 'GDP' in line or 'Revenue' in line or 'saved' in line:
-                    print(f"  {line}")
-        except subprocess.CalledProcessError as e:
+            
+            # Track policy decisions
+            selected_policies = set(result_df[COLUMNS["option"]].tolist())
+            policy_decisions[level] = {
+                policy: 1 if policy in selected_policies else 0
+                for policy in all_policy_names
+            }
+            
+            # Track KPI values
+            kpi_summary[level] = kpi_dict
+            
+        except Exception as e:
             failed_runs.append(level)
             print(f"[FAILED] Failed to generate results for ${level:,}B")
-            print(f"  Error: {e.stderr}")
+            print(f"  Error: {str(e)}")
     
     print("\n" + "=" * 70)
     print(f"Completed {len(successful_runs)}/{len(spending_levels)} optimization runs")
@@ -342,8 +375,26 @@ def run_full_range() -> None:
     if failed_runs:
         print(f"\nFailed runs: {failed_runs}")
     
-    # Run visualization if we have results
+    # Generate summary outputs if we have results
     if successful_runs:
+        print("\n" + "=" * 70)
+        print("Generating summary outputs...")
+        
+        # Create policy decision matrix
+        policy_matrix_df = pd.DataFrame(policy_decisions).T
+        policy_matrix_df.index.name = 'Defense_Spending_B'
+        policy_matrix_file = "outputs/defense/policy_decisions_matrix.csv"
+        policy_matrix_df.to_csv(policy_matrix_file)
+        print(f"[OK] Policy decision matrix saved to '{policy_matrix_file}'")
+        
+        # Create KPI summary matrix
+        kpi_matrix_df = pd.DataFrame(kpi_summary).T
+        kpi_matrix_df.index.name = 'Defense_Spending_B'
+        kpi_summary_file = "outputs/defense/economic_effects_summary.csv"
+        kpi_matrix_df.to_csv(kpi_summary_file)
+        print(f"[OK] Economic effects summary saved to '{kpi_summary_file}'")
+        
+        # Run visualization if we have results
         print("\n" + "=" * 70)
         print("Generating visualization...")
         try:
@@ -383,7 +434,7 @@ def main() -> None:
     
     # Determine mode of operation
     if args.spending is not None:
-        # Single optimization run
+        # Single optimization run (don't return values when called from command line)
         run_single_optimization(args.spending)
     else:
         # Default: Run full range + visualization
