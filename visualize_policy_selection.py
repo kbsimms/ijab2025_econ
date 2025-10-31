@@ -1,10 +1,8 @@
 """
 Policy Selection Analysis Across Defense Spending Levels
 
-This script creates comprehensive visualizations showing:
-1. Policy Selection Heatmap - Which policies are selected at each defense spending level
-2. Policy Frequency Chart - How often each policy appears across all spending levels
-3. Defense Policy Substitution Chart - Changes in NS (National Security) policy selections
+This script creates a heatmap showing which tax and spending policies
+(excluding National Security policies) are selected at each defense spending level.
 """
 
 import pandas as pd
@@ -63,24 +61,29 @@ def extract_policy_number(policy_name):
     return policy_name
 
 def create_heatmap(policy_data):
-    """Create a heatmap showing policy selections across defense spending levels."""
-    print("\nCreating policy selection heatmap...")
+    """Create a heatmap showing policy selections across defense spending levels (excluding NS policies)."""
+    print("\nCreating policy selection heatmap (excluding National Security policies)...")
     
-    # Get all unique policies across all spending levels
+    # Get all unique policies across all spending levels, excluding NS policies
     all_policies = set()
     for data in policy_data.values():
         if data['df'] is not None:
-            all_policies.update(data['df']['Option'].tolist())
+            # Filter out NS policies
+            non_ns_policies = [p for p in data['df']['Option'].tolist() if not p.startswith('NS')]
+            all_policies.update(non_ns_policies)
     
     all_policies = sorted(all_policies, key=extract_policy_number)
     
     # Create matrix: rows = policies, columns = spending levels
+    # Filter out NS policies from selected policies
     matrix = np.zeros((len(all_policies), len(spending_levels)))
     
     for col_idx, level in enumerate(spending_levels):
         selected = policy_data[level]['selected']
+        # Filter out NS policies from selections
+        selected_non_ns = [p for p in selected if not p.startswith('NS')]
         for row_idx, policy in enumerate(all_policies):
-            if policy in selected:
+            if policy in selected_non_ns:
                 matrix[row_idx, col_idx] = 1
     
     # Create figure
@@ -109,7 +112,7 @@ def create_heatmap(policy_data):
                 linecolor='white',
                 ax=ax)
     
-    ax.set_title('Policy Selection Across Defense Spending Levels\n(Green = Selected, Gray = Not Selected)', 
+    ax.set_title('Tax & Spending Policy Selection Across Defense Spending Levels\n(Green = Selected, Gray = Not Selected, NS Policies Excluded)',
                  fontsize=16, fontweight='bold', pad=20)
     ax.set_xlabel('Defense Spending Change (Billions)', fontsize=12, fontweight='bold')
     ax.set_ylabel('Policy Options', fontsize=12, fontweight='bold')
@@ -227,8 +230,8 @@ def create_frequency_chart(all_policies, matrix):
     return freq_df
 
 def create_defense_substitution_chart(policy_data):
-    """Create a chart showing NS (National Security) policy substitutions."""
-    print("\nCreating defense policy substitution chart...")
+    """Create a heatmap showing NS (National Security) policy substitutions."""
+    print("\nCreating defense policy substitution heatmap...")
     
     # Extract NS policies across spending levels
     ns_selections = {}
@@ -254,10 +257,10 @@ def create_defense_substitution_chart(policy_data):
             if policy in ns_selections[level]:
                 ns_matrix[row_idx, col_idx] = 1
     
-    # Create figure
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(18, 12))
+    # Create figure with single subplot
+    fig, ax = plt.subplots(figsize=(18, 10))
     
-    # Subplot 1: Heatmap
+    # Create labels for NS policies
     ns_labels = []
     for policy in all_ns_policies:
         if ':' in policy:
@@ -268,6 +271,7 @@ def create_defense_substitution_chart(policy_data):
         else:
             ns_labels.append(policy[:80])
     
+    # Create heatmap
     sns.heatmap(ns_matrix,
                 cmap=['#ffebee', '#c62828'],  # Light red for unselected, dark red for selected
                 cbar_kws={'label': 'Selected'},
@@ -275,52 +279,27 @@ def create_defense_substitution_chart(policy_data):
                 xticklabels=[f"${l:+,}B" for l in spending_levels],
                 linewidths=1,
                 linecolor='white',
-                ax=ax1)
+                ax=ax)
     
-    ax1.set_title('National Security Policy Substitutions Across Defense Spending Levels', 
-                  fontsize=14, fontweight='bold', pad=15)
-    ax1.set_xlabel('Defense Spending Change (Billions)', fontsize=11, fontweight='bold')
-    ax1.set_ylabel('NS Policy Options', fontsize=11, fontweight='bold')
-    plt.setp(ax1.get_xticklabels(), rotation=45, ha='right')
-    
-    # Subplot 2: Line chart showing number of NS policies selected
-    ns_counts = [len(ns_selections[level]) for level in spending_levels]
-    
-    ax2.plot(spending_levels, ns_counts, marker='o', linewidth=2, markersize=8, color='#c62828')
-    ax2.fill_between(spending_levels, ns_counts, alpha=0.3, color='#c62828')
-    ax2.set_xlabel('Defense Spending Change (Billions)', fontsize=11, fontweight='bold')
-    ax2.set_ylabel('Number of NS Policies Selected', fontsize=11, fontweight='bold')
-    ax2.set_title('National Security Policy Count Across Spending Levels', 
-                  fontsize=14, fontweight='bold', pad=15)
-    ax2.grid(True, alpha=0.3)
-    ax2.set_xlim(spending_levels[0], spending_levels[-1])
-    
-    # Format x-axis
-    ax2.axhline(y=0, color='black', linewidth=0.8)
-    ax2.axvline(x=0, color='black', linewidth=0.8, linestyle='--', alpha=0.5)
-    
-    # Add annotations for key points
-    max_ns = max(ns_counts)
-    max_idx = ns_counts.index(max_ns)
-    ax2.annotate(f'Max: {max_ns} policies\nat ${spending_levels[max_idx]:+,}B',
-                xy=(spending_levels[max_idx], max_ns),
-                xytext=(spending_levels[max_idx] + 1000, max_ns + 0.3),
-                arrowprops=dict(arrowstyle='->', color='black', lw=1.5),
-                fontsize=10, fontweight='bold',
-                bbox=dict(boxstyle='round,pad=0.5', facecolor='yellow', alpha=0.7))
+    ax.set_title('National Security Policy Substitutions Across Defense Spending Levels',
+                  fontsize=16, fontweight='bold', pad=20)
+    ax.set_xlabel('Defense Spending Change (Billions)', fontsize=12, fontweight='bold')
+    ax.set_ylabel('NS Policy Options', fontsize=12, fontweight='bold')
+    plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
     
     plt.tight_layout()
     
     # Save
     output_file = output_dir / 'defense_policy_substitution.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"[OK] Defense substitution chart saved to '{output_file}'")
+    print(f"[OK] Defense substitution heatmap saved to '{output_file}'")
     plt.close()
     
     # Print summary
+    ns_counts = [len(ns_selections[level]) for level in spending_levels]
     print("\nDefense Policy Summary:")
     print(f"  Total unique NS policies: {len(all_ns_policies)}")
-    print(f"  Max NS policies selected: {max_ns} (at ${spending_levels[max_idx]:+,}B)")
+    print(f"  Max NS policies selected: {max(ns_counts)} (at ${spending_levels[ns_counts.index(max(ns_counts))]:+,}B)")
     print(f"  Min NS policies selected: {min(ns_counts)} (at ${spending_levels[ns_counts.index(min(ns_counts))]:+,}B)")
 
 def print_policy_insights(freq_df, all_policies, matrix):
@@ -367,26 +346,19 @@ def print_policy_insights(freq_df, all_policies, matrix):
 def main():
     """Main execution function."""
     print("="*70)
-    print("COMPREHENSIVE POLICY SELECTION ANALYSIS")
+    print("POLICY SELECTION ANALYSIS")
     print("="*70)
     
     # Load data
     policy_data = load_policy_data()
     
-    # Create visualizations
+    # Create policy selection heatmap (excluding NS policies)
     all_policies, matrix = create_heatmap(policy_data)
-    freq_df = create_frequency_chart(all_policies, matrix)
-    create_defense_substitution_chart(policy_data)
-    
-    # Print insights
-    print_policy_insights(freq_df, all_policies, matrix)
     
     print("\n" + "="*70)
-    print("All visualizations complete!")
-    print(f"Check '{output_dir}' for output files:")
+    print("Visualization complete!")
+    print(f"Check '{output_dir}' for output file:")
     print("  - policy_selection_heatmap.png")
-    print("  - policy_frequency_analysis.png")
-    print("  - defense_policy_substitution.png")
     print("="*70)
 
 if __name__ == '__main__':
