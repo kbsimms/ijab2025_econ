@@ -232,8 +232,8 @@ def main():
     display_results(result_df, gdp_impact, revenue_impact)
     
     # Save to CSV
-    result_df.to_csv("optimal.csv", index=False)
-    print("✓ Results saved to 'optimal.csv'\n")
+    result_df.to_csv("max_gdp_defense270.csv", index=False)
+    print("✓ Results saved to 'max_gdp_defense270.csv'\n")
 
 
 if __name__ == "__main__":
