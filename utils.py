@@ -49,7 +49,8 @@ def load_policy_data(file_path: str = EXCEL_FILE_PATH) -> Tuple[pd.DataFrame, Di
     
     # Extract headers from row 2 (index 1)
     headers = df.iloc[1]
-    df_clean = df[2:].copy()
+    # Skip first 3 rows (0=title, 1=headers, 2=section header) to get actual data
+    df_clean = df[3:].copy()
     df_clean.columns = headers
     df_clean = df_clean.reset_index(drop=True)
     
@@ -65,7 +66,7 @@ def load_policy_data(file_path: str = EXCEL_FILE_PATH) -> Tuple[pd.DataFrame, Di
     # Extract NS groupings for mutual exclusivity constraints
     ns_groups = extract_ns_groups(df_clean)
     
-    print(f"✓ Loaded {len(df_clean)} policy options")
+    print(f"Loaded {len(df_clean)} policy options")
     print_ns_groups(df_clean, ns_groups)
     
     return df_clean, ns_groups
@@ -105,19 +106,25 @@ def extract_ns_groups(df: pd.DataFrame) -> Dict[str, List[int]]:
 
 def get_ns_strict_indices(df: pd.DataFrame) -> List[int]:
     """
-    Get indices of strict NS1-NS7 policies (for defense spending constraint).
+    Get positional indices of strict NS1-NS7 policies (for defense spending constraint).
     
     These are the policies that count toward minimum NS spending requirements.
+    IMPORTANT: Returns positional indices (0-based position in DataFrame),
+    not DataFrame index labels.
     
     Args:
         df: DataFrame containing policy data
         
     Returns:
-        List of indices for NS1-NS7 policies only
+        List of positional indices for NS1-NS7 policies only
     """
-    ns_strict_indices = df[
+    # Get DataFrame index labels that match NS1-NS7 pattern
+    matching_labels = df[
         df[COLUMNS["option"]].str.match(NS_STRICT_PATTERN, na=False)
     ].index.tolist()
+    
+    # Convert DataFrame index labels to positional indices
+    ns_strict_indices = [df.index.get_loc(label) for label in matching_labels]
     
     return ns_strict_indices
 
@@ -131,13 +138,13 @@ def print_ns_groups(df: pd.DataFrame, ns_groups: Dict[str, List[int]]) -> None:
         ns_groups: Dict mapping NS group names to policy indices
     """
     if ns_groups:
-        print(f"✓ Identified {len(ns_groups)} NS policy groups:")
+        print(f"Identified {len(ns_groups)} NS policy groups:")
         for group, idxs in sorted(ns_groups.items()):
             policies = [df.iloc[idx][COLUMNS["option"]].split(":")[0] for idx in idxs]
             print(f"   {group}: {', '.join(policies)} ({len(idxs)} options)")
         print()
     else:
-        print("⚠ WARNING: No NS policy groups detected\n")
+        print("WARNING: No NS policy groups detected\n")
 
 
 def verify_ns_exclusivity(
@@ -172,20 +179,20 @@ def verify_ns_exclusivity(
         
         if len(selected_in_group) > 1:
             policies = [df.iloc[i][COLUMNS["option"]].split(":")[0] for i in selected_in_group]
-            violations.append(f"  ✗ {group}: {len(selected_in_group)} policies selected ({', '.join(policies)})")
+            violations.append(f"  X {group}: {len(selected_in_group)} policies selected ({', '.join(policies)})")
             all_satisfied = False
         elif len(selected_in_group) == 1:
             policy = df.iloc[selected_in_group[0]][COLUMNS["option"]].split(":")[0]
-            print(f"  ✓ {group}: 1 policy selected ({policy})")
+            print(f"  OK {group}: 1 policy selected ({policy})")
         else:
-            print(f"  ✓ {group}: 0 policies selected")
+            print(f"  OK {group}: 0 policies selected")
     
     if violations:
-        print("\n⚠ WARNING: NS MUTUAL EXCLUSIVITY VIOLATIONS DETECTED:")
+        print("\nWARNING: NS MUTUAL EXCLUSIVITY VIOLATIONS DETECTED:")
         for v in violations:
             print(v)
     else:
-        print("  All NS constraints satisfied! ✓")
+        print("  All NS constraints satisfied!")
     
     return all_satisfied
 
