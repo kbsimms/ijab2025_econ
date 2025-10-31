@@ -4,10 +4,19 @@ Policy Optimization Script with Distributional Equality
 This script maximizes GDP growth subject to:
 - Revenue neutrality constraint (no increase in deficit)
 - Distributional equality constraint (all income groups within 1% of each other)
+- National Security (NS) constraints: Mutual exclusivity within NS policy groups
 
 The distributional equality constraint ensures that policy impacts are
 distributed fairly across all income groups, with after-tax income changes
 for P20, P40-60, P80-100, and P99 differing by no more than 1 percentage point.
+
+Key Features:
+1. Distributional Equality: All income groups within 1% of each other
+2. Revenue Neutrality: Ensures total dynamic revenue is non-negative
+3. National Security (NS) Constraints:
+   - NS policy groups (e.g., NS1A, NS1B, NS1C): Only one option per group can be selected
+   - Prevents selecting conflicting national security policies
+4. Two-stage optimization with tiebreaking on lower-income benefit
 """
 
 import pandas as pd
@@ -19,7 +28,20 @@ SUPPRESS_GUROBI_OUTPUT = True
 
 
 def load_and_clean_data(file_path):
-    """Load and clean policy data from Excel file."""
+    """
+    Load and clean policy data from Excel file.
+    
+    This function handles data preprocessing including:
+    - Loading raw Excel data
+    - Extracting proper column headers
+    - Converting numeric columns
+    - Identifying National Security (NS) policy groups
+    
+    Returns:
+        tuple: (df_clean, ns_groups)
+            - df_clean: Cleaned DataFrame with all policies
+            - ns_groups: Dict mapping NS group names to policy indices
+    """
     print("Loading policy data...")
     
     # Load the Excel file
@@ -58,26 +80,59 @@ def load_and_clean_data(file_path):
     df_clean["P80-100"] = df_clean["P80-100"].fillna(0)
     df_clean["P99"] = df_clean["P99"].fillna(0)
     
-    print(f"✓ Loaded {len(df_clean)} policy options\n")
-    return df_clean
-
-
-def optimize_policy_selection(df_clean, verbose=True):
-    """
-    Two-stage optimization with distributional equality constraints.
+    # Add indicator for NS-prefixed policies (National Security policies)
+    # Matches patterns like: NS1A:, NS2B:, NS7C:, etc.
+    # Note: This uses a strict pattern to only match NSxY where x=digits, Y=letter
+    df_clean["is_NS"] = df_clean["Option"].str.contains(r"^NS\d+[A-Z]:", case=False, na=False, regex=True)
     
-    Stage 1: Maximize GDP subject to revenue neutrality and distributional equality
+    # Extract NS groupings for mutual exclusivity constraints
+    # Example: NS1A, NS1B, NS1C all belong to group "NS1"
+    # Only one option from each NS group can be selected
+    # IMPORTANT: Use positional index (0-based) not DataFrame index label
+    ns_groups = {}
+    for pos_idx, (label_idx, row) in enumerate(df_clean[df_clean["is_NS"]].iterrows()):
+        code = row["Option"].split(":")[0].strip()  # Extract "NS1A" from "NS1A: Description"
+        group = code[:-1]  # Extract "NS1" from "NS1A"
+        # Find positional index in the full df_clean DataFrame
+        pos_in_df = df_clean.index.get_loc(label_idx)
+        ns_groups.setdefault(group, []).append(pos_in_df)
+    
+    print(f"✓ Loaded {len(df_clean)} policy options")
+    if ns_groups:
+        print(f"✓ Identified {len(ns_groups)} NS policy groups:")
+        for group, idxs in sorted(ns_groups.items()):
+            policies = [df_clean.iloc[idx]["Option"].split(":")[0] for idx in idxs]
+            print(f"   {group}: {', '.join(policies)} ({len(idxs)} options)")
+        print()
+    else:
+        print("⚠ WARNING: No NS policy groups detected\n")
+    
+    return df_clean, ns_groups
+
+
+def optimize_policy_selection(df_clean, ns_groups, verbose=True):
+    """
+    Two-stage optimization with distributional equality and NS mutual exclusivity constraints.
+    
+    Stage 1: Maximize GDP subject to revenue neutrality, distributional equality, and NS constraints
         - Finds the maximum achievable GDP growth
         - Ensures total dynamic revenue is non-negative
         - Enforces that all income groups have similar after-tax income changes
+        - Enforces NS mutual exclusivity: at most one policy per NS group
         
     Stage 2: Maximize lower-income benefit while maintaining optimal GDP and equality
         - Among solutions achieving optimal GDP from Stage 1
         - Prioritizes policies that benefit lower-income groups
         - Uses lexicographic weighting to prefer P20 > P40-60 > P80-100 > P99
     
+    National Security (NS) Mutual Exclusivity:
+        For each NS group (e.g., NS1 with options NS1A, NS1B, NS1C),
+        at most one option can be selected. This prevents selecting
+        conflicting national security policies within the same category.
+    
     Args:
         df_clean: DataFrame containing policy options and their impacts
+        ns_groups: Dict mapping NS group names to lists of policy indices
         verbose: If True, prints progress messages
         
     Returns:
@@ -143,6 +198,12 @@ def optimize_policy_selection(df_clean, verbose=True):
         # Limit the absolute difference to 1 percentage point
         model.addConstr(diff <= 0.01, name=f"{name}_limit")
     
+    # NS mutual exclusivity constraints
+    # For each NS group (e.g., NS1 with options NS1A, NS1B, NS1C),
+    # at most one option can be selected
+    for group, idxs in ns_groups.items():
+        model.addConstr(quicksum(x[i] for i in idxs) <= 1, name=f"NS_{group}_mutual_exclusivity")
+    
     # Objective: Maximize total GDP impact
     model.setObjective(quicksum(gdp[i] * x[i] for i in range(n)), GRB.MAXIMIZE)
     model.optimize()
@@ -189,11 +250,15 @@ def optimize_policy_selection(df_clean, verbose=True):
         model_2.addConstr(rhs - lhs <= diff, name=f"{name}_neg")
         model_2.addConstr(diff <= 0.01, name=f"{name}_limit")
     
+    # NS mutual exclusivity constraints (same as Stage 1)
+    for group, idxs in ns_groups.items():
+        model_2.addConstr(quicksum(x2[i] for i in idxs) <= 1, name=f"NS_{group}_mutual_exclusivity")
+    
     # Objective: Prioritize lower-income brackets using lexicographic weighting
     # Weights: P20 gets highest priority (1e6), then P40-60 (1e3), then P80-100 (1e1), then P99 (1)
     # This ensures we maximize P20 benefit first, then P40-60, etc.
     model_2.setObjective(
-        p20_sum * 1e6 + p40_sum * 1e3 + p80_sum * 1e1 + p99_sum, 
+        p20_sum * 1e6 + p40_sum * 1e3 + p80_sum * 1e1 + p99_sum,
         GRB.MAXIMIZE
     )
     model_2.optimize()
@@ -277,10 +342,10 @@ def display_results(result_df, gdp_impact, revenue_impact):
 def main():
     """Main execution function."""
     # Load and clean data
-    df_clean = load_and_clean_data(FILE_PATH)
+    df_clean, ns_groups = load_and_clean_data(FILE_PATH)
     
     # Run optimization
-    result_df, gdp_impact, revenue_impact = optimize_policy_selection(df_clean)
+    result_df, gdp_impact, revenue_impact = optimize_policy_selection(df_clean, ns_groups)
     
     # Display results
     display_results(result_df, gdp_impact, revenue_impact)

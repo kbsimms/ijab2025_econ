@@ -1,6 +1,17 @@
 """
 Policy Optimization Script
-Maximizes GDP growth subject to revenue neutrality constraint
+Maximizes GDP growth subject to revenue neutrality constraint and National Security constraints
+
+This script maximizes GDP growth subject to:
+- Fiscal constraint: Revenue neutrality (no increase in deficit)
+- National Security (NS) constraints: Mutual exclusivity within NS policy groups
+
+Key Features:
+1. Revenue Neutrality: Ensures total dynamic revenue is non-negative
+2. National Security (NS) Constraints:
+   - NS policy groups (e.g., NS1A, NS1B, NS1C): Only one option per group can be selected
+   - Prevents selecting conflicting national security policies
+3. Two-stage optimization to find best GDP with tiebreaking on revenue
 """
 
 import pandas as pd
@@ -12,7 +23,20 @@ SUPPRESS_GUROBI_OUTPUT = True
 
 
 def load_and_clean_data(file_path):
-    """Load and clean policy data from Excel file."""
+    """
+    Load and clean policy data from Excel file.
+    
+    This function handles data preprocessing including:
+    - Loading raw Excel data
+    - Extracting proper column headers
+    - Converting numeric columns
+    - Identifying National Security (NS) policy groups
+    
+    Returns:
+        tuple: (df_clean, ns_groups)
+            - df_clean: Cleaned DataFrame with all policies
+            - ns_groups: Dict mapping NS group names to policy indices
+    """
     print("Loading policy data...")
     
     # Load the Excel file
@@ -44,25 +68,58 @@ def load_and_clean_data(file_path):
     ]
     df_clean[numeric_cols] = df_clean[numeric_cols].apply(pd.to_numeric, errors='coerce')
     
-    print(f"✓ Loaded {len(df_clean)} policy options\n")
-    return df_clean
+    # Add indicator for NS-prefixed policies (National Security policies)
+    # Matches patterns like: NS1A:, NS2B:, NS7C:, etc.
+    # Note: This uses a strict pattern to only match NSxY where x=digits, Y=letter
+    df_clean["is_NS"] = df_clean["Option"].str.contains(r"^NS\d+[A-Z]:", case=False, na=False, regex=True)
+    
+    # Extract NS groupings for mutual exclusivity constraints
+    # Example: NS1A, NS1B, NS1C all belong to group "NS1"
+    # Only one option from each NS group can be selected
+    # IMPORTANT: Use positional index (0-based) not DataFrame index label
+    ns_groups = {}
+    for pos_idx, (label_idx, row) in enumerate(df_clean[df_clean["is_NS"]].iterrows()):
+        code = row["Option"].split(":")[0].strip()  # Extract "NS1A" from "NS1A: Description"
+        group = code[:-1]  # Extract "NS1" from "NS1A"
+        # Find positional index in the full df_clean DataFrame
+        pos_in_df = df_clean.index.get_loc(label_idx)
+        ns_groups.setdefault(group, []).append(pos_in_df)
+    
+    print(f"✓ Loaded {len(df_clean)} policy options")
+    if ns_groups:
+        print(f"✓ Identified {len(ns_groups)} NS policy groups:")
+        for group, idxs in sorted(ns_groups.items()):
+            policies = [df_clean.iloc[idx]["Option"].split(":")[0] for idx in idxs]
+            print(f"   {group}: {', '.join(policies)} ({len(idxs)} options)")
+        print()
+    else:
+        print("⚠ WARNING: No NS policy groups detected\n")
+    
+    return df_clean, ns_groups
 
 
-def optimize_policy_selection(df_clean, verbose=True):
+def optimize_policy_selection(df_clean, ns_groups, verbose=True):
     """
     Two-stage optimization to find optimal policy package.
     
-    Stage 1: Maximize GDP subject to revenue neutrality
+    Stage 1: Maximize GDP subject to revenue neutrality and NS mutual exclusivity
         - Finds the maximum achievable GDP growth
         - Ensures total dynamic revenue is non-negative (revenue neutral or positive)
+        - Enforces NS mutual exclusivity: at most one policy per NS group
         
     Stage 2: Maximize revenue while maintaining optimal GDP
         - Among all solutions that achieve the optimal GDP from Stage 1
         - Selects the one with the highest revenue surplus
         - This breaks ties when multiple policy combinations achieve the same GDP
     
+    National Security (NS) Mutual Exclusivity:
+        For each NS group (e.g., NS1 with options NS1A, NS1B, NS1C),
+        at most one option can be selected. This prevents selecting
+        conflicting national security policies within the same category.
+    
     Args:
         df_clean: DataFrame containing policy options and their impacts
+        ns_groups: Dict mapping NS group names to lists of policy indices
         verbose: If True, prints progress messages
         
     Returns:
@@ -93,6 +150,14 @@ def optimize_policy_selection(df_clean, verbose=True):
     # This ensures the policy package doesn't increase the deficit
     model.addConstr(quicksum(revenue[i] * x[i] for i in range(n)) >= 0, name="RevenueNeutrality")
     
+    # NS mutual exclusivity constraints
+    # For each NS group (e.g., NS1 with options NS1A, NS1B, NS1C),
+    # at most one option can be selected
+    if verbose and ns_groups:
+        print(f"  Adding {len(ns_groups)} NS mutual exclusivity constraints...")
+    for group, idxs in ns_groups.items():
+        model.addConstr(quicksum(x[i] for i in idxs) <= 1, name=f"NS_{group}_mutual_exclusivity")
+    
     # Objective: Maximize total GDP impact
     model.setObjective(quicksum(gdp[i] * x[i] for i in range(n)), GRB.MAXIMIZE)
     model.optimize()
@@ -119,6 +184,10 @@ def optimize_policy_selection(df_clean, verbose=True):
     # This ensures we don't sacrifice GDP to gain more revenue
     model_2.addConstr(quicksum(gdp[i] * x2[i] for i in range(n)) == best_gdp, name="GDPMatch")
     
+    # NS mutual exclusivity constraints (same as Stage 1)
+    for group, idxs in ns_groups.items():
+        model_2.addConstr(quicksum(x2[i] for i in idxs) <= 1, name=f"NS_{group}_mutual_exclusivity")
+    
     # Objective: Maximize revenue surplus (among optimal GDP solutions)
     model_2.setObjective(quicksum(revenue[i] * x2[i] for i in range(n)), GRB.MAXIMIZE)
     model_2.optimize()
@@ -127,6 +196,28 @@ def optimize_policy_selection(df_clean, verbose=True):
     # Using 0.5 threshold handles numerical precision issues in binary variables
     selected_indices = [i for i in range(n) if x2[i].X > 0.5]
     selected_df = df_clean.iloc[selected_indices].copy()
+    
+    # Verify NS mutual exclusivity in solution
+    if verbose and ns_groups:
+        print("\nVerifying NS mutual exclusivity in solution:")
+        violations = []
+        for group, idxs in sorted(ns_groups.items()):
+            selected_in_group = [i for i in idxs if i in selected_indices]
+            if len(selected_in_group) > 1:
+                policies = [df_clean.iloc[i]["Option"].split(":")[0] for i in selected_in_group]
+                violations.append(f"  ✗ {group}: {len(selected_in_group)} policies selected ({', '.join(policies)})")
+            elif len(selected_in_group) == 1:
+                policy = df_clean.iloc[selected_in_group[0]]["Option"].split(":")[0]
+                print(f"  ✓ {group}: 1 policy selected ({policy})")
+            else:
+                print(f"  ✓ {group}: 0 policies selected")
+        
+        if violations:
+            print("\n⚠ WARNING: NS MUTUAL EXCLUSIVITY VIOLATIONS DETECTED:")
+            for v in violations:
+                print(v)
+        else:
+            print("  All NS constraints satisfied! ✓")
     
     return selected_df, best_gdp, model_2.ObjVal
 
@@ -192,10 +283,10 @@ def display_results(result_df, gdp_impact, revenue_impact):
 def main():
     """Main execution function."""
     # Load and clean data
-    df_clean = load_and_clean_data(FILE_PATH)
+    df_clean, ns_groups = load_and_clean_data(FILE_PATH)
     
     # Run optimization
-    result_df, gdp_impact, revenue_impact = optimize_policy_selection(df_clean)
+    result_df, gdp_impact, revenue_impact = optimize_policy_selection(df_clean, ns_groups)
     
     # Display results
     display_results(result_df, gdp_impact, revenue_impact)
