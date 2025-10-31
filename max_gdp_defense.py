@@ -333,14 +333,14 @@ def run_full_range() -> None:
                 check=True
             )
             successful_runs.append(level)
-            print(f"✓ Successfully generated max_gdp_defense{level}.csv")
+            print(f"[OK] Successfully generated max_gdp_defense{level}.csv")
             # Print key output lines
             for line in result.stdout.split('\n'):
                 if 'GDP' in line or 'Revenue' in line or 'saved' in line:
                     print(f"  {line}")
         except subprocess.CalledProcessError as e:
             failed_runs.append(level)
-            print(f"✗ Failed to generate results for ${level:,}B")
+            print(f"[FAILED] Failed to generate results for ${level:,}B")
             print(f"  Error: {e.stderr}")
     
     print("\n" + "=" * 70)
@@ -361,12 +361,12 @@ def run_full_range() -> None:
                 check=True
             )
             print(result.stdout)
-            print("✓ Visualization complete!")
+            print("[OK] Visualization complete!")
         except subprocess.CalledProcessError as e:
-            print("✗ Visualization failed:")
+            print("[FAILED] Visualization failed:")
             print(e.stderr)
         except FileNotFoundError:
-            print("⚠ visualize_defense_spending.py not found, skipping visualization")
+            print("[WARNING] visualize_defense_spending.py not found, skipping visualization")
 
 
 def main() -> None:

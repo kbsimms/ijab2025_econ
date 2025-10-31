@@ -23,9 +23,9 @@ for level in spending_levels:
     file_path = output_dir / f'max_gdp_defense{level}.csv'
     if file_path.exists():
         results[level] = pd.read_csv(file_path)
-        print(f"  ✓ Loaded {file_path}: {len(results[level])} policies selected")
+        print(f"  [OK] Loaded {file_path}: {len(results[level])} policies selected")
     else:
-        print(f"  ✗ Missing {file_path}")
+        print(f"  [MISSING] {file_path}")
 
 # Calculate aggregate metrics for each spending level
 print("\nCalculating aggregate metrics...")
@@ -192,7 +192,7 @@ ax9.grid(True, alpha=0.3)
 plt.tight_layout()
 output_file = output_dir / 'defense_spending_analysis.png'
 plt.savefig(output_file, dpi=300, bbox_inches='tight')
-print(f"\n✓ Visualization saved to '{output_file}'")
+print(f"\n[OK] Visualization saved to '{output_file}'")
 
 # Additional analysis: Print key insights
 print("\n" + "="*70)
