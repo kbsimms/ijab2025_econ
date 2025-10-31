@@ -8,9 +8,39 @@ This project provides three optimization scripts, each with different constraint
 
 1. **max_gdp.py** - Basic GDP maximization with revenue neutrality
 2. **max_gdp_equal_distro.py** - GDP maximization with distributional equality
-3. **max_gdp_defense270.py** - GDP maximization with national security and equity requirements
+3. **max_gdp_defense.py** - GDP maximization with national security and equity requirements (replaces max_gdp_defense270.py and max_gdp_defense305.py)
 
-All scripts share common features including revenue neutrality and National Security (NS) mutual exclusivity constraints.
+All scripts share common infrastructure through centralized configuration and utility modules for consistency and maintainability.
+
+## Project Structure
+
+```
+ijab_econ_scenario_analysis/
+├── config.py                      # Centralized configuration and constants
+├── utils.py                       # Shared utility functions
+├── max_gdp.py                     # Basic GDP maximization
+├── max_gdp_equal_distro.py        # GDP with distributional equality
+├── max_gdp_defense.py             # GDP with defense & equity (parameterized)
+├── main.py                        # Project overview and documentation
+└── README.md                      # This file
+```
+
+### Key Modules
+
+**config.py** - Centralized Configuration
+- Column name mappings (standardized across all scripts)
+- National Security (NS) policy regex patterns
+- Optimization settings (Gurobi output, epsilon values, tolerances)
+- Defense spending thresholds
+- Display formatting constants
+
+**utils.py** - Shared Utilities
+- `load_policy_data()` - Standardized data loading from Excel
+- `extract_ns_groups()` - NS policy group identification
+- `get_ns_strict_indices()` - NS1-NS7 policy indices for defense scripts
+- `verify_ns_exclusivity()` - Solution validation
+- `display_results()` - Formatted output display
+- `display_results_with_distribution()` - Distribution-aware output
 
 ## Common Features
 
@@ -18,7 +48,7 @@ All scripts share common features including revenue neutrality and National Secu
 All scripts ensure fiscal responsibility by requiring that the total dynamic revenue impact is non-negative (≥ $0 billion). This prevents selecting policy packages that would increase the federal deficit.
 
 ### 2. National Security (NS) Mutual Exclusivity
-**NEW:** All scripts now include NS mutual exclusivity constraints to prevent selecting conflicting national security policies.
+All scripts include NS mutual exclusivity constraints to prevent selecting conflicting national security policies.
 
 - **How it works:** Policies are grouped by their NS prefix (e.g., NS1, NS2, NS3, etc.)
 - **Constraint:** At most one policy can be selected from each NS group
@@ -29,6 +59,9 @@ All scripts ensure fiscal responsibility by requiring that the total dynamic rev
 All scripts use a sophisticated two-stage approach:
 - **Stage 1:** Find the maximum achievable GDP growth given all constraints
 - **Stage 2:** Among solutions achieving optimal GDP, select the best according to secondary criteria (varies by script)
+
+### 4. Consistent Column Naming
+All scripts now use standardized column names from `config.py`, ensuring consistency and making maintenance easier.
 
 ## Scripts
 
@@ -79,7 +112,7 @@ python max_gdp_equal_distro.py
 
 ---
 
-### max_gdp_defense270.py - National Security & Equity Focus
+### max_gdp_defense.py - National Security & Equity Focus
 
 **Objective:** Maximize GDP growth with strong national security funding and progressive distribution
 
@@ -92,7 +125,7 @@ python max_gdp_equal_distro.py
   - Combined lower/middle income benefit must exceed combined upper income benefit
 - National Security:
   - NS mutual exclusivity (at most one policy per NS group)
-  - Minimum $3,000 billion spending on NS1-NS7 policies
+  - Configurable minimum spending on NS1-NS7 policies
 
 **Tiebreaking:** Maximizes revenue surplus among optimal GDP solutions
 
@@ -100,10 +133,19 @@ python max_gdp_equal_distro.py
 
 **Run:**
 ```bash
-python max_gdp_defense270.py
+# Default: $3,000B minimum NS spending
+python max_gdp_defense.py
+
+# Explicit spending requirement
+python max_gdp_defense.py --spending 3000
+
+# Increased spending requirement
+python max_gdp_defense.py --spending 4000
 ```
 
-**Output:** `max_gdp_defense270.csv`
+**Output:** `max_gdp_defense3000.csv` or `max_gdp_defense4000.csv` (based on spending parameter)
+
+**Note:** This script replaces the previous `max_gdp_defense270.py` and `max_gdp_defense305.py` files with a single parameterized implementation, eliminating code duplication.
 
 ## Installation
 
@@ -214,6 +256,29 @@ Only one option from the NS2 group can be selected.
 3. **Realistic Scenarios:** Mirrors real-world policy-making where mutually exclusive choices must be made
 4. **Flexible Grouping:** Automatically handles any number of NS groups and options per group
 
+## Code Architecture & Maintainability
+
+### Centralized Configuration (`config.py`)
+All configuration settings, constants, and column mappings are centralized in one place:
+- Change column names once, affects all scripts
+- Adjust optimization parameters globally
+- Easy to add new constants or modify existing ones
+
+### Shared Utilities (`utils.py`)
+Common functionality extracted to eliminate code duplication:
+- Standardized data loading across all scripts
+- Consistent NS group detection
+- Uniform output formatting
+- Easy to test and maintain
+
+### Benefits of New Structure
+- **DRY Principle:** Eliminated ~600 lines of duplicate code
+- **Consistency:** All scripts use same column names and patterns
+- **Maintainability:** Changes in one place propagate everywhere
+- **Testability:** Shared utilities can be unit tested
+- **Readability:** Clear separation of concerns
+- **Type Safety:** Added type hints for better IDE support
+
 ## Technical Details
 
 ### Optimization Framework
@@ -246,13 +311,32 @@ Only one option from the NS2 group can be selected.
 - Check that colon (`:`) is present after NS code
 - Ensure policies exist in the Excel file
 
-## Contributing
+**"ImportError: No module named 'config' or 'utils'"**
+- Ensure `config.py` and `utils.py` are in the same directory as the scripts
+- Check that you're running from the correct directory
+
+## Development & Contributing
 
 When adding new optimization scripts:
-1. Include NS mutual exclusivity constraints
-2. Use two-stage optimization approach
-3. Document all constraints clearly
-4. Follow existing code structure and naming conventions
+1. Import from `config` and `utils` modules
+2. Use standardized column names from `COLUMNS` dictionary
+3. Use shared utility functions for data loading and display
+4. Include NS mutual exclusivity constraints
+5. Use two-stage optimization approach
+6. Follow existing code structure and naming conventions
+7. Add comprehensive docstrings with type hints
+8. Document all constraints clearly
+
+## Version History
+
+- **v3.0** (Current): Major refactoring for consistency and maintainability
+  - Created centralized `config.py` and `utils.py` modules
+  - Standardized column naming across all scripts
+  - Consolidated defense scripts into single parameterized `max_gdp_defense.py`
+  - Added type hints and comprehensive documentation
+  - Eliminated code duplication (~600 lines removed)
+- **v2.0**: Added NS mutual exclusivity constraints to all scripts
+- **v1.0**: Initial release with three optimization scripts
 
 ## License
 
@@ -261,8 +345,3 @@ When adding new optimization scripts:
 ## Contact
 
 [Add contact information]
-
-## Version History
-
-- **v2.0** (Current): Added NS mutual exclusivity constraints to all scripts
-- **v1.0**: Initial release with three optimization scripts
