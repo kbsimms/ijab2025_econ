@@ -9,6 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
+from matplotlib.ticker import FuncFormatter
 
 # Ensure output directory exists
 output_dir = Path('outputs/defense')
@@ -36,6 +37,7 @@ metrics = {
     'jobs': [],
     'wage': [],
     'revenue': [],
+    'static_revenue': [],
     'p20': [],
     'p40_60': [],
     'p80_100': [],
@@ -56,6 +58,7 @@ for level in spending_levels:
     metrics['jobs'].append(df['Full-Time Equivalent Jobs'].sum())
     metrics['wage'].append(df['Wage Rate'].sum())
     metrics['revenue'].append(df['Dynamic 10-Year Revenue (billions)'].sum())
+    metrics['static_revenue'].append(df['Static 10-Year Revenue (billions)'].sum())
     metrics['p20'].append(df['P20'].sum())
     metrics['p40_60'].append(df['P40-60'].sum())
     metrics['p80_100'].append(df['P80-100'].sum())
@@ -96,16 +99,27 @@ ax1.set_ylabel('Total GDP Change', fontsize=10)
 ax1.grid(True, alpha=0.3)
 ax1.legend()
 
-# 2. Revenue Impact
+# 2. Marginal Efficiency (ΔGDP / ΔSpending)
 ax2 = plt.subplot(3, 3, 2)
-ax2.plot(metrics['spending'], metrics['revenue'], 'o-', linewidth=2.5,
-         markersize=8, color=colors['success'], label='Revenue Change')
-ax2.axhline(y=0, color='red', linestyle='--', alpha=0.5, linewidth=1.5, label='Revenue Neutral')
-ax2.set_title('Revenue Impact vs Defense Spending', fontsize=12, fontweight='bold')
+marginal_efficiency = []
+for i in range(1, len(metrics['spending'])):
+    delta_gdp = metrics['gdp'][i] - metrics['gdp'][i-1]
+    delta_spending = metrics['spending'][i] - metrics['spending'][i-1]
+    if delta_spending != 0:
+        marginal_efficiency.append(delta_gdp / delta_spending * 1000)  # per $1B
+    else:
+        marginal_efficiency.append(0)
+
+# Plot with x-axis as midpoints between spending levels
+midpoints = [(metrics['spending'][i] + metrics['spending'][i-1])/2 for i in range(1, len(metrics['spending']))]
+ax2.plot(midpoints, marginal_efficiency, 'o-', linewidth=2.5,
+         markersize=8, color=colors['secondary'], label='Marginal Efficiency')
+ax2.axhline(y=0, color='red', linestyle='--', alpha=0.5, linewidth=1.5, label='Zero Marginal Return')
+ax2.set_title('Marginal Efficiency\n(ΔGDP / Δ$1B Defense Spending)', fontsize=12, fontweight='bold')
 ax2.set_xlabel('Defense Spending Requirement ($B)', fontsize=10)
-ax2.set_ylabel('Total Revenue Change ($B)', fontsize=10)
+ax2.set_ylabel('GDP Change per $1B Increase', fontsize=10)
 ax2.grid(True, alpha=0.3)
-ax2.legend()
+ax2.legend(fontsize=9)
 
 # 3. Jobs Impact
 ax3 = plt.subplot(3, 3, 3)
@@ -146,48 +160,72 @@ ax6.set_ylabel('Income Change by Percentile', fontsize=10)
 ax6.legend(fontsize=8)
 ax6.grid(True, alpha=0.3)
 
-# 7. Policy Counts
+# 7. Total Factor Productivity (TFP)
 ax7 = plt.subplot(3, 3, 7)
-width = 200
-x_pos = np.array(metrics['spending'])
-ax7.bar(x_pos - width/2, metrics['n_policies'], width, alpha=0.7, 
-        label='Total Policies', color=colors['primary'])
-ax7.bar(x_pos + width/2, metrics['n_ns_policies'], width, alpha=0.7,
-        label='NS Policies', color=colors['tertiary'])
-ax7.set_title('Number of Selected Policies', fontsize=12, fontweight='bold')
-ax7.set_xlabel('Defense Spending Requirement ($B)', fontsize=10)
-ax7.set_ylabel('Policy Count', fontsize=10)
-ax7.legend()
-ax7.grid(True, alpha=0.3, axis='y')
+# TFP = GDP Change / (Capital + Labor + Net Fiscal Cost)
+# Normalize labor by dividing jobs by 1M to get comparable scale
+# Net Fiscal Cost = -Static Revenue (negative revenue is cost)
+tfp = []
+for i in range(len(metrics['spending'])):
+    capital = abs(metrics['capital'][i]) if metrics['capital'][i] != 0 else 0.01
+    labor = abs(metrics['jobs'][i] / 1e6) if metrics['jobs'][i] != 0 else 0.01  # Normalize to millions
+    fiscal_cost = abs(metrics['static_revenue'][i]) if metrics['static_revenue'][i] != 0 else 0.01
+    
+    total_inputs = capital + labor + fiscal_cost
+    if total_inputs > 0:
+        tfp.append(metrics['gdp'][i] / total_inputs)
+    else:
+        tfp.append(0)
 
-# 8. Actual NS Spending vs Requirement
+ax7.plot(metrics['spending'], tfp, 'o-', linewidth=2.5,
+         markersize=8, color=colors['quaternary'])
+ax7.set_title('Total Factor Productivity\n(GDP / All Input Factors)', fontsize=12, fontweight='bold')
+ax7.set_xlabel('Defense Spending Requirement ($B)', fontsize=10)
+ax7.set_ylabel('TFP Index', fontsize=10)
+ax7.grid(True, alpha=0.3)
+
+# 8. 10-Year Dynamic Revenue vs Defense Spending
 ax8 = plt.subplot(3, 3, 8)
-ax8.plot(metrics['spending'], metrics['ns_spending'], 'o-', linewidth=2.5,
-         markersize=8, color=colors['success'], label='Actual NS Spending')
-ax8.plot(metrics['spending'], metrics['spending'], '--', linewidth=2,
-         color='gray', alpha=0.7, label='Requirement')
-ax8.set_title('Defense Spending: Actual vs Requirement', fontsize=12, fontweight='bold')
+ax8.plot(metrics['spending'], metrics['revenue'], 'o-', linewidth=2.5,
+         markersize=8, color=colors['success'], label='Dynamic Revenue')
+ax8.axhline(y=0, color='red', linestyle='--', alpha=0.5, linewidth=1.5, label='Revenue Neutral')
+# Shade positive revenue area
+ax8.fill_between(metrics['spending'], 0, metrics['revenue'],
+                  where=[r >= 0 for r in metrics['revenue']],
+                  alpha=0.2, color='green', label='Surplus')
+# Shade negative revenue area
+ax8.fill_between(metrics['spending'], 0, metrics['revenue'],
+                  where=[r < 0 for r in metrics['revenue']],
+                  alpha=0.2, color='red', label='Deficit')
+ax8.set_title('10-Year Dynamic Revenue vs Defense Spending', fontsize=12, fontweight='bold')
 ax8.set_xlabel('Defense Spending Requirement ($B)', fontsize=10)
-ax8.set_ylabel('Spending ($B)', fontsize=10)
+ax8.set_ylabel('Dynamic Revenue ($B)', fontsize=10)
 ax8.legend()
 ax8.grid(True, alpha=0.3)
 
-# 9. Economic Efficiency: GDP per Dollar of NS Spending
+# 9. Jobs per Net Dollar Spent
 ax9 = plt.subplot(3, 3, 9)
-efficiency = []
+# Net Fiscal Cost = -Dynamic Revenue (negative revenue = cost, positive = surplus)
+# Jobs per $1B of net cost
+jobs_per_dollar = []
 for i in range(len(metrics['spending'])):
-    if metrics['ns_spending'][i] > 0:
-        eff = metrics['gdp'][i] / (metrics['ns_spending'][i] / 1000)  # GDP per $1B NS spending
-        efficiency.append(eff)
+    net_cost = -metrics['revenue'][i]  # Negative revenue becomes positive cost
+    if net_cost > 0:  # Only meaningful when there's actual cost
+        jobs_per_billion = metrics['jobs'][i] / net_cost
+        jobs_per_dollar.append(jobs_per_billion)
+    elif net_cost < 0:  # Revenue surplus - infinite efficiency
+        jobs_per_dollar.append(metrics['jobs'][i] / 0.001)  # Very high value for surplus scenarios
     else:
-        efficiency.append(0)
+        jobs_per_dollar.append(0)
 
-ax9.plot(metrics['spending'], efficiency, 'o-', linewidth=2.5,
+ax9.plot(metrics['spending'], jobs_per_dollar, 'o-', linewidth=2.5,
          markersize=8, color=colors['warning'])
-ax9.set_title('Economic Efficiency\n(GDP Change per $1B NS Spending)', fontsize=12, fontweight='bold')
+ax9.set_title('Jobs per Net Dollar Spent\n(Jobs Created / $1B Net Fiscal Cost)', fontsize=12, fontweight='bold')
 ax9.set_xlabel('Defense Spending Requirement ($B)', fontsize=10)
-ax9.set_ylabel('GDP Change per $1B', fontsize=10)
+ax9.set_ylabel('Jobs per $1B Net Cost', fontsize=10)
 ax9.grid(True, alpha=0.3)
+# Format y-axis to show thousands separator
+ax9.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f'{int(x):,}'))
 
 plt.tight_layout()
 output_file = output_dir / 'defense_spending_analysis.png'
