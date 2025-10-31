@@ -50,32 +50,58 @@ def load_and_clean_data(file_path):
 
 def optimize_policy_selection(df_clean, verbose=True):
     """
-    Two-stage optimization:
-    1. Maximize GDP subject to revenue neutrality
-    2. Maximize revenue while maintaining optimal GDP
+    Two-stage optimization to find optimal policy package.
+    
+    Stage 1: Maximize GDP subject to revenue neutrality
+        - Finds the maximum achievable GDP growth
+        - Ensures total dynamic revenue is non-negative (revenue neutral or positive)
+        
+    Stage 2: Maximize revenue while maintaining optimal GDP
+        - Among all solutions that achieve the optimal GDP from Stage 1
+        - Selects the one with the highest revenue surplus
+        - This breaks ties when multiple policy combinations achieve the same GDP
+    
+    Args:
+        df_clean: DataFrame containing policy options and their impacts
+        verbose: If True, prints progress messages
+        
+    Returns:
+        tuple: (selected_df, gdp_impact, revenue_impact)
+            - selected_df: DataFrame of selected policies
+            - gdp_impact: Total GDP impact achieved
+            - revenue_impact: Total revenue impact achieved
     """
-    # Extract data
+    # Extract data arrays from DataFrame for optimization
     n = len(df_clean)
     gdp = df_clean["Long-Run Change in GDP"].values
     revenue = df_clean["Dynamic 10-Year Revenue (billions)"].values
     policy_names = df_clean["Option"].values
     
-    # Stage 1: Maximize GDP subject to revenue constraint
+    # === Stage 1: Maximize GDP subject to revenue constraint ===
     if verbose:
         print("Running optimization (Stage 1: Maximize GDP)...")
     
+    # Create Gurobi optimization model
     model = Model("GDP_Maximization")
     if SUPPRESS_GUROBI_OUTPUT:
         model.setParam('OutputFlag', 0)
     
+    # Decision variables: x[i] = 1 if policy i is selected, 0 otherwise
     x = model.addVars(n, vtype=GRB.BINARY, name="x")
+    
+    # Constraint: Total dynamic revenue must be non-negative (revenue neutral)
+    # This ensures the policy package doesn't increase the deficit
     model.addConstr(quicksum(revenue[i] * x[i] for i in range(n)) >= 0, name="RevenueNeutrality")
+    
+    # Objective: Maximize total GDP impact
     model.setObjective(quicksum(gdp[i] * x[i] for i in range(n)), GRB.MAXIMIZE)
     model.optimize()
     
+    # Store the optimal GDP value for use in Stage 2
     best_gdp = model.ObjVal
     
-    # Stage 2: Maximize revenue while maintaining optimal GDP
+    # === Stage 2: Maximize revenue while maintaining optimal GDP ===
+    # This stage breaks ties when multiple solutions achieve the same GDP
     if verbose:
         print("Running optimization (Stage 2: Maximize Revenue)...")
     
@@ -83,13 +109,22 @@ def optimize_policy_selection(df_clean, verbose=True):
     if SUPPRESS_GUROBI_OUTPUT:
         model_2.setParam('OutputFlag', 0)
     
+    # New decision variables for Stage 2
     x2 = model_2.addVars(n, vtype=GRB.BINARY, name="x")
+    
+    # Constraint: Revenue neutrality (same as Stage 1)
     model_2.addConstr(quicksum(revenue[i] * x2[i] for i in range(n)) >= 0, name="RevenueNeutrality")
+    
+    # Constraint: Must achieve exactly the optimal GDP from Stage 1
+    # This ensures we don't sacrifice GDP to gain more revenue
     model_2.addConstr(quicksum(gdp[i] * x2[i] for i in range(n)) == best_gdp, name="GDPMatch")
+    
+    # Objective: Maximize revenue surplus (among optimal GDP solutions)
     model_2.setObjective(quicksum(revenue[i] * x2[i] for i in range(n)), GRB.MAXIMIZE)
     model_2.optimize()
     
-    # Extract solution and all metrics for selected policies
+    # Extract solution: policies where x2[i] > 0.5 are selected
+    # Using 0.5 threshold handles numerical precision issues in binary variables
     selected_indices = [i for i in range(n) if x2[i].X > 0.5]
     selected_df = df_clean.iloc[selected_indices].copy()
     

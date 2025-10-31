@@ -1,8 +1,13 @@
 """
 Policy Optimization Script with Distributional Equality
-Maximizes GDP growth subject to:
-- Revenue neutrality constraint
+
+This script maximizes GDP growth subject to:
+- Revenue neutrality constraint (no increase in deficit)
 - Distributional equality constraint (all income groups within 1% of each other)
+
+The distributional equality constraint ensures that policy impacts are
+distributed fairly across all income groups, with after-tax income changes
+for P20, P40-60, P80-100, and P99 differing by no more than 1 percentage point.
 """
 
 import pandas as pd
@@ -47,6 +52,7 @@ def load_and_clean_data(file_path):
     df_clean[numeric_cols] = df_clean[numeric_cols].apply(pd.to_numeric, errors='coerce')
     
     # Fill NaN values in distributional columns with 0
+    # This handles spending policies that may not have distributional data
     df_clean["P20"] = df_clean["P20"].fillna(0)
     df_clean["P40-60"] = df_clean["P40-60"].fillna(0)
     df_clean["P80-100"] = df_clean["P80-100"].fillna(0)
@@ -58,21 +64,42 @@ def load_and_clean_data(file_path):
 
 def optimize_policy_selection(df_clean, verbose=True):
     """
-    Two-stage optimization with distributional equality:
-    1. Maximize GDP subject to revenue neutrality and distributional equality
-    2. Maximize lower-income benefit while maintaining optimal GDP and equality
+    Two-stage optimization with distributional equality constraints.
+    
+    Stage 1: Maximize GDP subject to revenue neutrality and distributional equality
+        - Finds the maximum achievable GDP growth
+        - Ensures total dynamic revenue is non-negative
+        - Enforces that all income groups have similar after-tax income changes
+        
+    Stage 2: Maximize lower-income benefit while maintaining optimal GDP and equality
+        - Among solutions achieving optimal GDP from Stage 1
+        - Prioritizes policies that benefit lower-income groups
+        - Uses lexicographic weighting to prefer P20 > P40-60 > P80-100 > P99
+    
+    Args:
+        df_clean: DataFrame containing policy options and their impacts
+        verbose: If True, prints progress messages
+        
+    Returns:
+        tuple: (selected_df, gdp_impact, revenue_impact)
+            - selected_df: DataFrame of selected policies
+            - gdp_impact: Total GDP impact achieved
+            - revenue_impact: Total revenue impact achieved
     """
-    # Extract data
+    # Extract data arrays from DataFrame for optimization
     n = len(df_clean)
     gdp = df_clean["Long-Run Change in GDP"].values
     revenue = df_clean["Dynamic 10-Year Revenue (billions)"].values
     policy_names = df_clean["Option"].values
+    
+    # Income percentile impact arrays
+    # P20 = bottom 20%, P40-60 = middle class, P80-100 = top 20%, P99 = top 1%
     p20 = df_clean["P20"].values
     p40_60 = df_clean["P40-60"].values
     p80_100 = df_clean["P80-100"].values
     p99 = df_clean["P99"].values
     
-    # Stage 1: Maximize GDP subject to revenue neutrality and distributional equality
+    # === Stage 1: Maximize GDP with distributional equality ===
     if verbose:
         print("Running optimization (Stage 1: Maximize GDP with Distributional Equality)...")
     
@@ -80,41 +107,52 @@ def optimize_policy_selection(df_clean, verbose=True):
     if SUPPRESS_GUROBI_OUTPUT:
         model.setParam('OutputFlag', 0)
     
+    # Decision variables: x[i] = 1 if policy i is selected, 0 otherwise
     x = model.addVars(n, vtype=GRB.BINARY, name="x")
     
-    # Revenue neutrality constraint
+    # Constraint: Revenue neutrality (same as basic model)
     model.addConstr(quicksum(revenue[i] * x[i] for i in range(n)) >= 0, name="RevenueNeutrality")
     
-    # Distributional totals
+    # Calculate total after-tax income change for each percentile group
     p20_total = quicksum(p20[i] * x[i] for i in range(n))
     p40_60_total = quicksum(p40_60[i] * x[i] for i in range(n))
     p80_100_total = quicksum(p80_100[i] * x[i] for i in range(n))
     p99_total = quicksum(p99[i] * x[i] for i in range(n))
     
-    # Distributional equality constraints (max 1 percentage point difference)
-    # We need to enforce |group1 - group2| <= 0.01 for all pairs
+    # Distributional equality constraints: enforce |group1 - group2| <= 0.01
+    # This ensures all income groups experience similar after-tax income changes
+    # (within 1 percentage point of each other)
     distribution_pairs = [
-        (p20_total, p40_60_total, "P20_P40"),
-        (p20_total, p80_100_total, "P20_P80"),
-        (p20_total, p99_total, "P20_P99"),
-        (p40_60_total, p80_100_total, "P40_P80"),
-        (p40_60_total, p99_total, "P40_P99"),
-        (p80_100_total, p99_total, "P80_P99"),
+        (p20_total, p40_60_total, "P20_P40"),      # Bottom 20% vs Middle class
+        (p20_total, p80_100_total, "P20_P80"),     # Bottom 20% vs Top 20%
+        (p20_total, p99_total, "P20_P99"),         # Bottom 20% vs Top 1%
+        (p40_60_total, p80_100_total, "P40_P80"),  # Middle class vs Top 20%
+        (p40_60_total, p99_total, "P40_P99"),      # Middle class vs Top 1%
+        (p80_100_total, p99_total, "P80_P99"),     # Top 20% vs Top 1%
     ]
     
+    # For each pair of income groups, enforce the absolute difference constraint
+    # We model |lhs - rhs| <= 0.01 using: lhs - rhs <= diff AND rhs - lhs <= diff
     for lhs, rhs, name in distribution_pairs:
+        # Create auxiliary variable to represent absolute difference
         diff = model.addVar(lb=0.0, name=f"abs_diff_{name}")
+        # Enforce: lhs - rhs <= diff (handles case when lhs > rhs)
         model.addConstr(lhs - rhs <= diff, name=f"{name}_pos")
+        # Enforce: rhs - lhs <= diff (handles case when rhs > lhs)
         model.addConstr(rhs - lhs <= diff, name=f"{name}_neg")
+        # Limit the absolute difference to 1 percentage point
         model.addConstr(diff <= 0.01, name=f"{name}_limit")
     
-    # Objective: Maximize GDP
+    # Objective: Maximize total GDP impact
     model.setObjective(quicksum(gdp[i] * x[i] for i in range(n)), GRB.MAXIMIZE)
     model.optimize()
     
+    # Store the optimal GDP value for use in Stage 2
     best_gdp = model.ObjVal
     
-    # Stage 2: Tiebreaking - prioritize lower-income brackets while maintaining GDP and equality
+    # === Stage 2: Tiebreaking - prioritize lower-income benefit ===
+    # Among all solutions that achieve optimal GDP and satisfy equality constraints,
+    # select the one that maximizes benefits for lower-income groups
     if verbose:
         print("Running optimization (Stage 2: Maximize Lower-Income Benefit)...")
     
@@ -122,21 +160,22 @@ def optimize_policy_selection(df_clean, verbose=True):
     if SUPPRESS_GUROBI_OUTPUT:
         model_2.setParam('OutputFlag', 0)
     
+    # New decision variables for Stage 2
     x2 = model_2.addVars(n, vtype=GRB.BINARY, name="x")
     
-    # Revenue neutrality constraint
+    # Constraint: Revenue neutrality (same as Stage 1)
     model_2.addConstr(quicksum(revenue[i] * x2[i] for i in range(n)) >= 0, name="RevenueNeutrality")
     
-    # GDP match constraint
+    # Constraint: Must achieve exactly the optimal GDP from Stage 1
     model_2.addConstr(quicksum(gdp[i] * x2[i] for i in range(n)) == best_gdp, name="GDPMatch")
     
-    # Distributional totals
+    # Calculate distributional totals for Stage 2
     p20_sum = quicksum(p20[i] * x2[i] for i in range(n))
     p40_sum = quicksum(p40_60[i] * x2[i] for i in range(n))
     p80_sum = quicksum(p80_100[i] * x2[i] for i in range(n))
     p99_sum = quicksum(p99[i] * x2[i] for i in range(n))
     
-    # Distributional equality constraints
+    # Distributional equality constraints (same as Stage 1)
     for (lhs, rhs, name) in [
         (p20_sum, p40_sum, "P20_P40"),
         (p20_sum, p80_sum, "P20_P80"),
@@ -150,14 +189,17 @@ def optimize_policy_selection(df_clean, verbose=True):
         model_2.addConstr(rhs - lhs <= diff, name=f"{name}_neg")
         model_2.addConstr(diff <= 0.01, name=f"{name}_limit")
     
-    # Objective: prioritize lower-income brackets (lexicographic with weights)
+    # Objective: Prioritize lower-income brackets using lexicographic weighting
+    # Weights: P20 gets highest priority (1e6), then P40-60 (1e3), then P80-100 (1e1), then P99 (1)
+    # This ensures we maximize P20 benefit first, then P40-60, etc.
     model_2.setObjective(
         p20_sum * 1e6 + p40_sum * 1e3 + p80_sum * 1e1 + p99_sum, 
         GRB.MAXIMIZE
     )
     model_2.optimize()
     
-    # Extract solution and all metrics for selected policies
+    # Extract solution: policies where x2[i] > 0.5 are selected
+    # Using 0.5 threshold handles numerical precision issues in binary variables
     selected_indices = [i for i in range(n) if x2[i].X > 0.5]
     selected_df = df_clean.iloc[selected_indices].copy()
     
@@ -214,7 +256,7 @@ def display_results(result_df, gdp_impact, revenue_impact):
     print(f"  P80-100 (Top 20%):                   {p80_total:>+8.4f}%")
     print(f"  P99 (Top 1%):                        {p99_total:>+8.4f}%")
     
-    # Calculate and display the range (max difference)
+    # Calculate and display the range (max difference between any two groups)
     distro_values = [p20_total, p40_total, p80_total, p99_total]
     max_diff = max(distro_values) - min(distro_values)
     print(f"\n  Distributional Range (max - min):    {max_diff:>+8.4f}%")
@@ -243,7 +285,7 @@ def main():
     # Display results
     display_results(result_df, gdp_impact, revenue_impact)
     
-    # Optionally save to CSV
+    # Save to CSV
     result_df.to_csv("max_gdp_equal_distro.csv", index=False)
     print("✓ Results saved to 'max_gdp_equal_distro.csv'\n")
 
