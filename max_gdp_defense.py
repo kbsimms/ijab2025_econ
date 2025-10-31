@@ -1,20 +1,24 @@
 """
-Policy Optimization Script with Equity and National Security Constraints
+Policy Optimization Script with Equity, Policy, and National Security Constraints
 
 This script maximizes GDP growth subject to:
 - Fiscal constraint: Revenue neutrality (no increase in deficit)
 - Economic constraints: Non-negative capital stock, jobs, and wage rate
 - Equity constraints: Progressive distribution favoring lower/middle income groups
 - Income constraints: All income groups must have non-negative after-tax income effects
+- Policy mutual exclusivity: Competing policies cannot both be selected
 - National security constraints: Minimum spending requirement, mutual exclusivity
 
 Key Features:
 1. Equity Constraints: Ensures lower and middle income groups (P20, P40-60) benefit
    at least as much as upper income groups (P80-100, P99)
-2. National Security (NS) Constraints:
+2. Policy Mutual Exclusivity: Ensures incompatible policies are not selected together
+   - 15 policy groups (corporate tax, estate tax, individual tax structure, etc.)
+   - Special constraints (e.g., VAT replacement excludes corporate surtax)
+3. National Security (NS) Constraints:
    - NS1-NS7 groups (A/B/C options): Only one option per group can be selected
    - Configurable minimum spending requirement on NS1-NS7 selections
-3. Two-stage optimization to find best GDP with tiebreaking on revenue
+4. Two-stage optimization to find best GDP with tiebreaking on revenue
 
 Usage:
     python max_gdp_defense.py                    # Default: Run full range (-4000 to 6000) + visualization
@@ -40,6 +44,90 @@ from config import (
 from utils import load_policy_data, get_ns_strict_indices, display_results
 
 
+def get_policy_indices_by_codes(df: pd.DataFrame, policy_codes: list) -> list:
+    """
+    Get positional indices for policies by their option codes.
+    
+    Args:
+        df: DataFrame containing policy data
+        policy_codes: List of policy codes (e.g., ['11', '36', '68'])
+        
+    Returns:
+        List of positional indices for matching policies
+    """
+    indices = []
+    for code in policy_codes:
+        # Match policies that start with the code followed by ':'
+        # This handles both numeric codes like "11:" and alphanumeric like "S15:"
+        matching = df[df[COLUMNS["option"]].str.match(f"^{code}:", na=False)]
+        if len(matching) > 0:
+            # Get positional index
+            label_idx = matching.index[0]
+            pos_idx = df.index.get_loc(label_idx)
+            indices.append(pos_idx)
+    return indices
+
+
+def define_policy_groups(df: pd.DataFrame) -> dict:
+    """
+    Define mutually exclusive policy groups.
+    
+    Returns:
+        Dictionary mapping group names to lists of policy indices
+    """
+    policy_groups = {}
+    
+    # 1. Corporate Tax Rate/Structure
+    policy_groups['corporate_tax'] = get_policy_indices_by_codes(df, ['11', '36', '68'])
+    
+    # 2. Gas Tax Increases
+    policy_groups['gas_tax'] = get_policy_indices_by_codes(df, ['47', '48'])
+    
+    # 3. Estate Tax
+    policy_groups['estate_tax'] = get_policy_indices_by_codes(df, ['12', '44', '46', '69'])
+    
+    # 4. Child Tax Credit - Refundability
+    policy_groups['ctc_refundability'] = get_policy_indices_by_codes(df, ['53', '54'])
+    
+    # 5. Social Security Payroll Tax Cap
+    policy_groups['ss_payroll_cap'] = get_policy_indices_by_codes(df, ['34', '35'])
+    
+    # 6. Payroll Tax Rate Changes
+    policy_groups['payroll_rate'] = get_policy_indices_by_codes(df, ['4', '33'])
+    
+    # 7. EITC/CDCTC Reforms
+    policy_groups['eitc_reforms'] = get_policy_indices_by_codes(df, ['21', '51', '52', '55', 'S15'])
+    
+    # 8. Individual Income Tax Structure
+    policy_groups['individual_tax_structure'] = get_policy_indices_by_codes(df, ['1', '3', '14', '59'])
+    
+    # 9. Child Tax Credit - Comprehensive
+    policy_groups['ctc_comprehensive'] = get_policy_indices_by_codes(df, ['19', '20', '55', 'S13'])
+    
+    # 10. Section 199A Deduction
+    policy_groups['section_199a'] = get_policy_indices_by_codes(df, ['10', '38'])
+    
+    # 11. Home Mortgage Interest Deduction
+    policy_groups['mortgage_deduction'] = get_policy_indices_by_codes(df, ['23', '24'])
+    
+    # 12. Charitable Deduction
+    policy_groups['charitable_deduction'] = get_policy_indices_by_codes(df, ['25', '58'])
+    
+    # 13. Capital Gains Tax Rate
+    policy_groups['capital_gains'] = get_policy_indices_by_codes(df, ['5', '29', '30'])
+    
+    # 14. Depreciation/Expensing
+    policy_groups['depreciation'] = get_policy_indices_by_codes(df, ['7', '40', '65'])
+    
+    # 15. Value Added Tax (VAT)
+    policy_groups['vat'] = get_policy_indices_by_codes(df, ['43', '68'])
+    
+    # Remove empty groups
+    policy_groups = {k: v for k, v in policy_groups.items() if len(v) > 0}
+    
+    return policy_groups
+
+
 def optimize_policy_selection(
     df: pd.DataFrame,
     ns_groups: dict,
@@ -48,13 +136,15 @@ def optimize_policy_selection(
     verbose: bool = True
 ) -> Tuple[pd.DataFrame, float, float, dict]:
     """
-    Two-stage optimization with equity and national security constraints.
+    Two-stage optimization with equity, policy, and national security constraints.
     
     Stage 1: Maximize GDP subject to all constraints
         - Fiscal: Revenue neutrality (sum of dynamic revenue >= 0)
         - Economic: Non-negative capital stock, jobs, wage rate
         - Equity: Progressive distribution (P20, P40-60 >= P80-100, P99)
         - Income: All income groups must have non-negative after-tax income (everyone better off)
+        - Policy mutual exclusivity: At most one policy per competing group (15 groups)
+        - Special policy constraints: E.g., VAT replacement excludes corporate surtax
         - NS mutual exclusivity: At most one policy per NS group
         - NS spending minimum: At least min_ns_spending on NS1-NS7 policies
         
@@ -67,6 +157,25 @@ def optimize_policy_selection(
         The equity constraints ensure progressive policy impacts:
         1. P20 and P40-60 must individually benefit at least as much as P80-100 and P99
         2. All income groups (P20, P40-60, P80-100, P99) must have >= 0 after-tax income effects
+    
+    Policy Mutual Exclusivity Groups:
+        1. Corporate Tax Rate/Structure: {11, 36, 68}
+        2. Gas Tax Increases: {47, 48}
+        3. Estate Tax: {12, 44, 46, 69}
+        4. Child Tax Credit - Refundability: {53, 54}
+        5. Social Security Payroll Tax Cap: {34, 35}
+        6. Payroll Tax Rate Changes: {4, 33}
+        7. EITC Reforms: {21, 51, 52, 55, S15}
+        8. Individual Income Tax Structure: {1, 3, 14, 59}
+        9. Child Tax Credit - Comprehensive: {19, 20, 55, S13}
+        10. Section 199A Deduction: {10, 38}
+        11. Home Mortgage Interest Deduction: {23, 24}
+        12. Charitable Deduction: {25, 58}
+        13. Capital Gains Tax Rate: {5, 29, 30}
+        14. Depreciation/Expensing: {7, 40, 65}
+        15. Value Added Tax (VAT): {43, 68}
+        
+        Special: If 68 (Replace CIT with VAT), then not 37 (Corporate Surtax)
         
     Args:
         df: DataFrame containing policy options and their impacts
@@ -101,6 +210,11 @@ def optimize_policy_selection(
     if verbose:
         print(f"Running optimization (Stage 1: Maximize GDP)...")
         print(f"  NS spending requirement: ${min_ns_spending:,}B")
+        
+        # Get policy groups for display
+        policy_groups_display = define_policy_groups(df)
+        if policy_groups_display:
+            print(f"  Policy mutual exclusivity groups: {len(policy_groups_display)}")
     
     stage1_model = Model("Stage1_MaximizeGDP")
     if SUPPRESS_GUROBI_OUTPUT:
@@ -116,6 +230,9 @@ def optimize_policy_selection(
     )
     
     # === Constraints ===
+    
+    # Get policy group indices for mutual exclusivity constraints
+    policy_groups = define_policy_groups(df)
     
     # Fiscal constraint: Total dynamic revenue must be non-negative
     # Ensures the policy package doesn't increase the deficit
@@ -163,6 +280,27 @@ def optimize_policy_selection(
     stage1_model.addConstr(p40 >= 0, name="P40_NonNegative")
     stage1_model.addConstr(p80 >= 0, name="P80_NonNegative")
     stage1_model.addConstr(p99 >= 0, name="P99_NonNegative")
+    
+    # Policy mutual exclusivity constraints
+    # For each policy group, at most one option can be selected
+    for group_name, idxs in policy_groups.items():
+        if len(idxs) > 1:  # Only add constraint if group has multiple options
+            stage1_model.addConstr(
+                quicksum(x[i] for i in idxs) <= 1,
+                name=f"Policy_{group_name}_mutual_exclusivity"
+            )
+    
+    # Special constraint: If policy 68 (Replace CIT with VAT) is selected,
+    # then policy 37 (Corporate Surtax) cannot be selected
+    idx_68 = get_policy_indices_by_codes(df, ['68'])
+    idx_37 = get_policy_indices_by_codes(df, ['37'])
+    if len(idx_68) > 0 and len(idx_37) > 0:
+        # If x[68] = 1, then x[37] must be 0
+        # Equivalent to: x[68] + x[37] <= 1
+        stage1_model.addConstr(
+            x[idx_68[0]] + x[idx_37[0]] <= 1,
+            name="Policy_68_excludes_37"
+        )
     
     # NS mutual exclusivity constraints
     # For each NS group (e.g., NS1 with options NS1A, NS1B, NS1C),
@@ -245,6 +383,21 @@ def optimize_policy_selection(
     stage2_model.addConstr(p40 >= 0, name="P40_NonNegative")
     stage2_model.addConstr(p80 >= 0, name="P80_NonNegative")
     stage2_model.addConstr(p99 >= 0, name="P99_NonNegative")
+    
+    # Policy mutual exclusivity constraints (same as Stage 1)
+    for group_name, idxs in policy_groups.items():
+        if len(idxs) > 1:
+            stage2_model.addConstr(
+                quicksum(x2[i] for i in idxs) <= 1,
+                name=f"Policy_{group_name}_mutual_exclusivity"
+            )
+    
+    # Special constraint: If policy 68 is selected, policy 37 cannot be selected
+    if len(idx_68) > 0 and len(idx_37) > 0:
+        stage2_model.addConstr(
+            x2[idx_68[0]] + x2[idx_37[0]] <= 1,
+            name="Policy_68_excludes_37"
+        )
     
     # NS constraints (same as Stage 1)
     for group, idxs in ns_groups.items():
