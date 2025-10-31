@@ -313,7 +313,7 @@ def main() -> None:
     display_results(result_df, gdp_impact, revenue_impact)
     
     # Save to CSV with spending level in filename
-    output_file = f"max_gdp_defense{args.spending}.csv"
+    output_file = f"outputs/defense/max_gdp_defense{args.spending}.csv"
     result_df.to_csv(output_file, index=False)
     print(f"Results saved to '{output_file}'\n")
 

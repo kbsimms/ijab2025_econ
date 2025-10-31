@@ -6,5 +6,8 @@ dist/
 wheels/
 *.egg-info
 
+# Generated CSV files in root (should be in outputs/defense/)
+/max_gdp_defense*.csv
+
 # Virtual environments
 .venv
