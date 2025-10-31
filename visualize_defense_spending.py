@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 
-# Load all optimization results (0 to 6000 in increments of 500)
-spending_levels = list(range(0, 6500, 500))
+# Load all optimization results (-4000 to 6000 in increments of 500)
+spending_levels = list(range(-4000, 6500, 500))
 results = {}
 
 print("Loading optimization results...")
