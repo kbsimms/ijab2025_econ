@@ -44,13 +44,13 @@ NS6A: Allocate $90B/year new funds dedicated to economic statecraft,0.0,0.0,0,0.
 27: Eliminate the Tax Exclusion for Municipal Bond Interest,-0.0005,-0.0005,-11152,-0.0005,-0.0005,-0.0005,-0.003,-0.006,192.84,191.84,,False
 "35: Apply the Social Security Payroll Tax to Wages Above $400,000",-0.002,-0.002,-226014,0.0,-0.002,-0.002,-0.007,-0.021,822.79,686.04,,False
 38: Eliminate the Section 199A Deduction,-0.0005,0.0,0,0.0005,0.0,0.0,0.0,0.0,208.23,200.28,,False
+39: Require Amortization of Advertising Expenses over 10 Years,-0.001,-0.003,-18199,-0.001,-0.002,-0.002,-0.003,-0.005,226.5,206.4,,False
 43: Enact a 5% Value Added Tax,-0.012,-0.009,-930686,-0.04,-0.042,-0.04,-0.034,-0.03,6091.67,5223.56,,False
 44: Return the Estate Tax to Clinton-era Levels,-0.002,-0.006,-41415,-0.002,-0.002,-0.002,-0.017,-0.055,887.4,823.9,,False
 46: Lower the Estate and Gift Tax Exemption Amount to $2 Million,-0.0005,-0.001,-5592,-0.0005,-0.0005,-0.0005,-0.0005,-0.023,337.2,332.1,,False
-47: Increase the Gas Tax by 15 Cents Per Gallon and Inflation Adjust Going Forward,-0.001,-0.001,-50359,-0.002,-0.002,-0.002,-0.002,-0.002,332.6,286.24,,False
+49: Reinstate the Cadillac Tax,-0.0005,-0.0005,-37800,-0.002,-0.002,-0.006,-0.004,-0.002,247.72,215.55,,False
 61: Permanently Eliminate the Pease Limitation on Itemized Deductions,0.001,0.001,77730,0.0005,0.001,0.001,0.004,0.01,-160.83,-125.58,,False
 65: Enact Full Expensing for All Capital Investment,0.023,0.043,441769,0.019,0.021,0.022,0.029,0.043,-1707.41,-1166.66,,False
 66: Maintain Limitation on Interest Deductibility at 30 Percent of EBITDA,0.001,0.002,18832,0.001,0.001,0.001,0.001,0.001,-65.84,-45.9,,False
 67: Eliminate Various Business Tax Expenditures,-0.002,-0.004,-33000,-0.002,-0.011,-0.01,-0.018,-0.031,985.6,926.43,,False
 68: Replace the Corporate Income Tax with a 5 Percent Value-Added Tax (VAT),0.004,0.02,122000,0.005,-0.002,-0.004,0.021,0.057,2772.55,2349.32,,False
-70: Increase Alcohol Excise Taxes to $16 per Proof Gallon and Index to Inflation,-0.0005,-0.0005,-22718,-0.001,-0.001,-0.001,-0.001,-0.0005,136.07,129.14,,False

@@ -65,10 +65,8 @@ def optimize_policy_selection(
     
     Equity Constraints Explained:
         The equity constraints ensure progressive policy impacts:
-        1. P20 and P40-60 must be within 1% of each other (protect both groups equally)
-        2. P20 and P40-60 must benefit at least as much as P80-100 and P99
-        3. Combined P20+P40-60 must exceed combined P80-100+P99
-        4. All income groups (P20, P40-60, P80-100, P99) must have >= 0 after-tax income effects
+        1. P20 and P40-60 must individually benefit at least as much as P80-100 and P99
+        2. All income groups (P20, P40-60, P80-100, P99) must have >= 0 after-tax income effects
         
     Args:
         df: DataFrame containing policy options and their impacts
@@ -149,17 +147,7 @@ def optimize_policy_selection(
     p80 = quicksum(x[i] * p80_arr[i] for i in indices)
     p99 = quicksum(x[i] * p99_arr[i] for i in indices)
     
-    # Constraint 1: P20 and P40-60 within 1% of each other (protect both equally)
-    stage1_model.addConstr(
-        p20 - p40 <= DISTRIBUTIONAL_TOLERANCE,
-        name="P20_P40_upper"
-    )
-    stage1_model.addConstr(
-        p40 - p20 <= DISTRIBUTIONAL_TOLERANCE,
-        name="P40_P20_upper"
-    )
-    
-    # Constraint 2: Lower/middle income groups must benefit at least as much as upper groups
+    # Constraint 1: Lower/middle income groups must individually benefit at least as much as upper groups
     # P20 >= P99 (bottom 20% benefits at least as much as top 1%)
     stage1_model.addConstr(p20 - p99 >= EPSILON, name="P20_ge_P99")
     # P40-60 >= P99 (middle class benefits at least as much as top 1%)
@@ -169,14 +157,7 @@ def optimize_policy_selection(
     # P40-60 >= P80-100 (middle class benefits at least as much as top 20%)
     stage1_model.addConstr(p40 - p80 >= EPSILON, name="P40_ge_P80")
     
-    # Constraint 3: Combined lower/middle income benefit exceeds combined upper income
-    # (P20 + P40-60) >= (P80-100 + P99)
-    stage1_model.addConstr(
-        p20 + p40 - p80 - p99 >= EPSILON,
-        name="LowerMiddle_ge_Upper"
-    )
-    
-    # Constraint 4: Non-negative after-tax income for all groups (everyone must be better off)
+    # Constraint 2: Non-negative after-tax income for all groups (everyone must be better off)
     stage1_model.addConstr(p20 >= 0, name="P20_NonNegative")
     stage1_model.addConstr(p40 >= 0, name="P40_NonNegative")
     stage1_model.addConstr(p80 >= 0, name="P80_NonNegative")
@@ -253,13 +234,10 @@ def optimize_policy_selection(
     p80 = quicksum(x2[i] * p80_arr[i] for i in indices)
     p99 = quicksum(x2[i] * p99_arr[i] for i in indices)
     
-    stage2_model.addConstr(p20 - p40 <= DISTRIBUTIONAL_TOLERANCE, name="P20_P40_upper")
-    stage2_model.addConstr(p40 - p20 <= DISTRIBUTIONAL_TOLERANCE, name="P40_P20_upper")
     stage2_model.addConstr(p20 - p99 >= EPSILON, name="P20_ge_P99")
     stage2_model.addConstr(p40 - p99 >= EPSILON, name="P40_ge_P99")
     stage2_model.addConstr(p20 - p80 >= EPSILON, name="P20_ge_P80")
     stage2_model.addConstr(p40 - p80 >= EPSILON, name="P40_ge_P80")
-    stage2_model.addConstr(p20 + p40 - p80 - p99 >= EPSILON, name="LowerMiddle_ge_Upper")
     
     # Non-negative after-tax income for all groups (everyone must be better off)
     stage2_model.addConstr(p20 >= 0, name="P20_NonNegative")
