@@ -1,14 +1,20 @@
 Option,Long-Run Change in GDP,Capital Stock,Full-Time Equivalent Jobs,Wage Rate,P20,P40-60,P80-100,P99,Static 10-Year Revenue (billions),Dynamic 10-Year Revenue (billions),Y to select,is_NS
+1: Lower Individual Income Tax Rates Across the Board (Lower All Rates by 10%),0.009,0.01,975398,0.001,0.007,0.014,0.027,0.037,-2257.31,-1713.77,,False
 2: Lower the Top Marginal Income Tax Rate (25% Top Rate),0.011,0.003,1033707,0.002,0.002,0.002,0.008,0.023,-2209.23,-1673.87,,False
 "3: Consolidate Current Brackets into Three: 10 percent, 25 percent, and 35 percent",0.013,0.014,1336191,0.001,0.01,0.024,0.039,0.054,-2694.5,-2167.24,,False
 4: Reduce Employer- and Employee-Side Payroll Tax by 1 Percentage Point Split (1 Percentage Point Split),0.002,0.002,179340,0.0,0.005,0.009,0.007,0.003,-651.84,-545.44,,False
+6: Index Capital Gains Realizations to Inflation,0.0005,0.001,8615,0.0005,0.0005,0.001,0.002,0.003,-143.65,-143.4,,False
 7: Make 100 Percent Bonus Depreciation Permanent,0.005,0.004,86457,0.004,0.004,0.004,0.005,0.006,-213.42,-110.19,,False
 8: Implement Neutral Cost Recovery for Structures,0.012,0.023,230766,0.01,0.011,0.011,0.015,0.021,-10.35,300.98,,False
 9: Cancel the Amortization of Research and Development Expenses,0.001,0.002,19550,0.001,0.001,0.001,0.001,0.002,-131.3,-107.9,,False
+11: Lower the Corporate Tax Rate (Lower to 15%),0.005,0.01,100937,0.004,0.012,0.011,0.017,0.026,-978.94,-847.71,,False
+12: Lower the Estate Tax Rate to 30 Percent,0.0005,0.001,7236,0.0005,0.0005,0.0005,0.0005,0.008,-81.94,-79.47,,False
+"13: Repeal Tariffs Imposed Under Sections 232, 201, and 301",0.001,0.002,82960,0.005,0.004,0.004,0.003,0.003,-758.99,-664.85,,False
 "51: Double EITC for Workers without Qualifying Children to $1,075",0.0005,0.0005,6035,0.0005,0.01,0.001,0.0,0.0,-35.52,-34.32,,False
 "52: Reform the EITC for Married and Unmarried Workers, with and without Children",0.001,0.001,96644,0.0,0.031,0.001,0.001,0.001,-164.04,-105.71,,False
 54: Make Child Tax Credit First Dollar Refundable,-0.0005,-0.0005,-14698,-0.0005,0.02,0.001,0.0,0.0,-37.0,-43.9,,False
 55: Restructure the Child Tax Credit and Earned Income Tax Credit,0.001,0.001,86986,-0.0005,0.033,0.023,0.006,0.001,-1414.4,-1379.0,,False
+56: Increase the Standard Deduction by 25% for All Filing Groups,0.0005,0.001,69883,-0.0005,0.001,0.007,0.001,0.0,-622.66,-558.51,,False
 "S1: Free, universal pre-kindergarten for all three- and four-year olds",0.009,0.0,0,0.0,0.0,0.0,0.0,0.0,-200.0,-200.0,,False
 S2: Tuition-free two-year community college,0.011,0.0,0,0.0,0.0,0.0,0.0,0.0,-109.0,-109.0,,False
 S3: Increase Pell Grants for low-income students,0.013,0.0,0,0.0,0.0,0.0,0.0,0.0,-80.0,-80.0,,False
@@ -22,31 +28,28 @@ S10: Expand summer Electronic Benefits Transfer to all eligible children nationw
 S11: Expand free meals for children in the highest poverty districts,0.005,0.0,0,0.0,0.0,0.0,0.0,0.0,-17.0,-17.0,,False
 S12: Facilitate re-entry for formerly incarcerated individuals through Supplemental Nutritional Assistance Program (SNAP) eligibility,0.0005,0.0,0,0.0,0.0,0.0,0.0,0.0,-10.0,-10.0,,False
 S17: Cancel student loan debt relief (Biden executive action),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,400.0,400.0,,False
-NS1A: Double funds dedicated to Europe & NATO (including Ukraine),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-1000.0,-1000.0,,True
+NS1B: Increase by 50% funds dedicated to Europe & NATO (including Ukraine),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-500.0,-500.0,,True
 NS2B: Increase by 50% funds dedicated to the Middle East (including Iran & Israel),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-500.0,-500.0,,True
 NS3B: Increase by 50% funds dedicated to the Indo-Pacific (including Taiwan),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-500.0,-500.0,,True
 NS4B: Increase by 50% funds dedicated to protecting the homeland,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-500.0,-500.0,,True
-NS5B: Increase by 50% funds dedicated to advanced national security technology,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-500.0,-500.0,,True
+NS5A: Double funds dedicated to advanced national security technology,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-1000.0,-1000.0,,True
 NS6A: Allocate $90B/year new funds dedicated to economic statecraft,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-1000.0,-1000.0,,True
 15: Repeal the Tax Cuts and Jobs Act (TCJA) Individual Tax Changes,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,829.72,648.75,,False
 "17: Add a New Bracket of 45 Percent for Income Above $750,000",-0.002,-0.02,-165888,-0.001,-0.002,-0.002,-0.007,-0.021,576.22,441.05,,False
 19: Eliminate the Child Tax Credit,0.001,0.001,99527,0.0005,-0.031,-0.008,0.001,0.001,890.72,917.22,,False
 20: Reduce the Child Tax Credit to $500,0.0005,0.0005,43923,-0.0005,-0.014,-0.005,0.0,0.0,593.35,585.22,,False
-21: Eliminate the Earned Income Tax Credit,0.002,0.003,273081,0.0005,-0.105,0.001,0.002,0.002,607.79,772.99,,False
 22: Eliminate the Federal Income Tax Deduction for State and Local Taxes,-0.007,-0.013,-492252,-0.003,-0.006,-0.008,-0.027,-0.034,1563.55,1283.17,,False
+"24: Lower the Home Mortgage Interest Deduction Cap to $500,000 in Principal",-0.001,-0.019,-29557,-0.0005,-0.006,-0.009,-0.018,-0.011,147.51,132.22,,False
 25: Eliminate the Charitable Deduction,-0.001,-0.002,-90202,-0.0005,-0.001,-0.002,-0.009,-0.014,747.4,694.52,,False
 26: Limit Tax Savings from Itemized Deductions to 28 Percent of Value,-0.001,-0.001,-63819,-0.0005,-0.001,-0.001,-0.004,-0.011,212.96,184.19,,False
 27: Eliminate the Tax Exclusion for Municipal Bond Interest,-0.0005,-0.0005,-11152,-0.0005,-0.0005,-0.0005,-0.003,-0.006,192.84,191.84,,False
-29: Raise the Top Capital Gains and Dividend Tax Rate to 30%,-0.0005,-0.001,-10024,-0.0005,-0.0005,-0.001,-0.001,-0.003,67.0,61.82,,False
 "35: Apply the Social Security Payroll Tax to Wages Above $400,000",-0.002,-0.002,-226014,0.0,-0.002,-0.002,-0.007,-0.021,822.79,686.04,,False
-37: Institute a Corporate Surtax of 5 Percent,-0.001,-0.002,-16423,-0.001,-0.002,-0.002,-0.003,-0.005,141.1,119.0,,False
 38: Eliminate the Section 199A Deduction,-0.0005,0.0,0,0.0005,0.0,0.0,0.0,0.0,208.23,200.28,,False
-39: Require Amortization of Advertising Expenses over 10 Years,-0.001,-0.003,-18199,-0.001,-0.002,-0.002,-0.003,-0.005,226.5,206.4,,False
+43: Enact a 5% Value Added Tax,-0.012,-0.009,-930686,-0.04,-0.042,-0.04,-0.034,-0.03,6091.67,5223.56,,False
 44: Return the Estate Tax to Clinton-era Levels,-0.002,-0.006,-41415,-0.002,-0.002,-0.002,-0.017,-0.055,887.4,823.9,,False
-45: Eliminate Step-Up in Basis on Capital Gains,-0.001,-0.001,-8489,-0.001,-0.001,-0.001,-0.002,-0.005,124.18,118.46,,False
 46: Lower the Estate and Gift Tax Exemption Amount to $2 Million,-0.0005,-0.001,-5592,-0.0005,-0.0005,-0.0005,-0.0005,-0.023,337.2,332.1,,False
-48: Increase the Gas Tax by 35 Cents Per Gallon and Inflation Adjust Going Forward,-0.001,-0.001,-103204,-0.005,-0.005,-0.004,-0.004,-0.003,758.34,653.12,,False
-59: Tax Individual Incomes at a Flat 30% Rate (20% Flat Tax),0.013,-0.03,1211491,0.003,-0.026,-0.118,-0.079,0.009,1148.8,1625.93,,False
+61: Permanently Eliminate the Pease Limitation on Itemized Deductions,0.001,0.001,77730,0.0005,0.001,0.001,0.004,0.01,-160.83,-125.58,,False
 65: Enact Full Expensing for All Capital Investment,0.023,0.043,441769,0.019,0.021,0.022,0.029,0.043,-1707.41,-1166.66,,False
 66: Maintain Limitation on Interest Deductibility at 30 Percent of EBITDA,0.001,0.002,18832,0.001,0.001,0.001,0.001,0.001,-65.84,-45.9,,False
 67: Eliminate Various Business Tax Expenditures,-0.002,-0.004,-33000,-0.002,-0.011,-0.01,-0.018,-0.031,985.6,926.43,,False
+68: Replace the Corporate Income Tax with a 5 Percent Value-Added Tax (VAT),0.004,0.02,122000,0.005,-0.002,-0.004,0.021,0.057,2772.55,2349.32,,False

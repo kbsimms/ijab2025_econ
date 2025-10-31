@@ -5,6 +5,7 @@ This script maximizes GDP growth subject to:
 - Fiscal constraint: Revenue neutrality (no increase in deficit)
 - Economic constraints: Non-negative capital stock, jobs, and wage rate
 - Equity constraints: Progressive distribution favoring lower/middle income groups
+- Income constraints: All income groups must have non-negative after-tax income effects
 - National security constraints: Minimum spending requirement, mutual exclusivity
 
 Key Features:
@@ -53,6 +54,7 @@ def optimize_policy_selection(
         - Fiscal: Revenue neutrality (sum of dynamic revenue >= 0)
         - Economic: Non-negative capital stock, jobs, wage rate
         - Equity: Progressive distribution (P20, P40-60 >= P80-100, P99)
+        - Income: All income groups must have non-negative after-tax income (everyone better off)
         - NS mutual exclusivity: At most one policy per NS group
         - NS spending minimum: At least min_ns_spending on NS1-NS7 policies
         
@@ -66,6 +68,7 @@ def optimize_policy_selection(
         1. P20 and P40-60 must be within 1% of each other (protect both groups equally)
         2. P20 and P40-60 must benefit at least as much as P80-100 and P99
         3. Combined P20+P40-60 must exceed combined P80-100+P99
+        4. All income groups (P20, P40-60, P80-100, P99) must have >= 0 after-tax income effects
         
     Args:
         df: DataFrame containing policy options and their impacts
@@ -173,6 +176,12 @@ def optimize_policy_selection(
         name="LowerMiddle_ge_Upper"
     )
     
+    # Constraint 4: Non-negative after-tax income for all groups (everyone must be better off)
+    stage1_model.addConstr(p20 >= 0, name="P20_NonNegative")
+    stage1_model.addConstr(p40 >= 0, name="P40_NonNegative")
+    stage1_model.addConstr(p80 >= 0, name="P80_NonNegative")
+    stage1_model.addConstr(p99 >= 0, name="P99_NonNegative")
+    
     # NS mutual exclusivity constraints
     # For each NS group (e.g., NS1 with options NS1A, NS1B, NS1C),
     # at most one option can be selected
@@ -251,6 +260,12 @@ def optimize_policy_selection(
     stage2_model.addConstr(p20 - p80 >= EPSILON, name="P20_ge_P80")
     stage2_model.addConstr(p40 - p80 >= EPSILON, name="P40_ge_P80")
     stage2_model.addConstr(p20 + p40 - p80 - p99 >= EPSILON, name="LowerMiddle_ge_Upper")
+    
+    # Non-negative after-tax income for all groups (everyone must be better off)
+    stage2_model.addConstr(p20 >= 0, name="P20_NonNegative")
+    stage2_model.addConstr(p40 >= 0, name="P40_NonNegative")
+    stage2_model.addConstr(p80 >= 0, name="P80_NonNegative")
+    stage2_model.addConstr(p99 >= 0, name="P99_NonNegative")
     
     # NS constraints (same as Stage 1)
     for group, idxs in ns_groups.items():
