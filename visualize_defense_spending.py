@@ -10,14 +10,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 
+# Ensure output directory exists
+output_dir = Path('outputs/defense')
+output_dir.mkdir(parents=True, exist_ok=True)
+
 # Load all optimization results (-4000 to 6000 in increments of 500)
 spending_levels = list(range(-4000, 6500, 500))
 results = {}
 
 print("Loading optimization results...")
 for level in spending_levels:
-    file_path = f'max_gdp_defense{level}.csv'
-    if Path(file_path).exists():
+    file_path = output_dir / f'max_gdp_defense{level}.csv'
+    if file_path.exists():
         results[level] = pd.read_csv(file_path)
         print(f"  ✓ Loaded {file_path}: {len(results[level])} policies selected")
     else:
@@ -186,8 +190,9 @@ ax9.set_ylabel('GDP Change per $1B', fontsize=10)
 ax9.grid(True, alpha=0.3)
 
 plt.tight_layout()
-plt.savefig('defense_spending_analysis.png', dpi=300, bbox_inches='tight')
-print(f"\n✓ Visualization saved to 'defense_spending_analysis.png'")
+output_file = output_dir / 'defense_spending_analysis.png'
+plt.savefig(output_file, dpi=300, bbox_inches='tight')
+print(f"\n✓ Visualization saved to '{output_file}'")
 
 # Additional analysis: Print key insights
 print("\n" + "="*70)
@@ -224,4 +229,4 @@ for i, level in enumerate(metrics['spending']):
     print(f"   ${level:,}B: P20={p20:+.4f}, P99={p99:+.4f}, Ratio={p20/p99:.2f}x" if p99 != 0 else f"   ${level:,}B: P20={p20:+.4f}, P99={p99:+.4f}")
 
 print("\n" + "="*70)
-print("\nVisualization complete! Check 'defense_spending_analysis.png'")
+print(f"\nVisualization complete! Check '{output_dir / 'defense_spending_analysis.png'}'")

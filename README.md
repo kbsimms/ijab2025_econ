@@ -21,7 +21,14 @@ ijab_econ_scenario_analysis/
 ├── max_gdp.py                     # Basic GDP maximization
 ├── max_gdp_equal_distro.py        # GDP with distributional equality
 ├── max_gdp_defense.py             # GDP with defense & equity (parameterized)
+├── visualize_defense_spending.py  # Visualization for defense scenarios
+├── generate_all_defense_levels.py # Batch generation (legacy)
+├── generate_negative_defense_levels.py # Batch generation for negative levels (legacy)
 ├── main.py                        # Project overview and documentation
+├── outputs/
+│   └── defense/                   # Defense scenario outputs
+│       ├── max_gdp_defense*.csv   # Optimization results
+│       └── defense_spending_analysis.png # Visualization
 └── README.md                      # This file
 ```
 
@@ -133,17 +140,24 @@ python max_gdp_equal_distro.py
 
 **Run:**
 ```bash
-# Default: $3,000B minimum NS spending
+# Default: Run full range (-4000 to 6000 in 500B increments) + visualization
 python max_gdp_defense.py
 
-# Explicit spending requirement
-python max_gdp_defense.py --spending 3000
+# Explicit full range (same as default)
+python max_gdp_defense.py --all
 
-# Increased spending requirement
-python max_gdp_defense.py --spending 4000
+# Single optimization with specific spending requirement
+python max_gdp_defense.py --spending 3000
 ```
 
-**Output:** `max_gdp_defense3000.csv` or `max_gdp_defense4000.csv` (based on spending parameter)
+**Outputs:**
+- CSV files: `outputs/defense/max_gdp_defense{spending}.csv` for each spending level
+- Visualization: `outputs/defense/defense_spending_analysis.png` (when running full range)
+
+**Default Behavior:** When run without arguments, the script automatically:
+1. Runs optimizations for all defense spending levels (-4000B to 6000B in 500B increments)
+2. Saves results to `outputs/defense/` directory
+3. Generates comprehensive visualization showing trade-offs across spending levels
 
 **Note:** This script replaces the previous `max_gdp_defense270.py` and `max_gdp_defense305.py` files with a single parameterized implementation, eliminating code duplication.
 

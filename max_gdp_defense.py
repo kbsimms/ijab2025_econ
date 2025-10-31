@@ -16,13 +16,16 @@ Key Features:
 3. Two-stage optimization to find best GDP with tiebreaking on revenue
 
 Usage:
-    python max_gdp_defense.py                    # Default: $3,000B requirement
-    python max_gdp_defense.py --spending 3000    # Explicit: $3,000B requirement
-    python max_gdp_defense.py --spending 4000    # Increased: $4,000B requirement
+    python max_gdp_defense.py                    # Default: Run full range (-4000 to 6000) + visualization
+    python max_gdp_defense.py --spending 3000    # Single run: $3,000B requirement
+    python max_gdp_defense.py --all              # Explicit: Run full range + visualization
 """
 
 import argparse
+import subprocess
+import sys
 from typing import Tuple
+from pathlib import Path
 import pandas as pd
 from gurobipy import Model, GRB, quicksum
 
@@ -286,36 +289,112 @@ def optimize_policy_selection(
     return selected_df, gdp_star, stage2_model.ObjVal
 
 
-def main() -> None:
-    """Main execution function."""
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(
-        description='Optimize policy selection with national security and equity constraints.'
-    )
-    parser.add_argument(
-        '--spending',
-        type=int,
-        default=DEFENSE_SPENDING["baseline"],
-        help=f'Minimum NS spending in billions (default: {DEFENSE_SPENDING["baseline"]})'
-    )
-    args = parser.parse_args()
-    
+def run_single_optimization(spending_level: int) -> None:
+    """Run optimization for a single spending level."""
     # Load and clean data
     df, ns_groups = load_policy_data()
     ns_strict_indices = get_ns_strict_indices(df)
     
     # Run optimization with specified spending level
     result_df, gdp_impact, revenue_impact = optimize_policy_selection(
-        df, ns_groups, ns_strict_indices, min_ns_spending=args.spending
+        df, ns_groups, ns_strict_indices, min_ns_spending=spending_level
     )
     
     # Display results
     display_results(result_df, gdp_impact, revenue_impact)
     
     # Save to CSV with spending level in filename
-    output_file = f"outputs/defense/max_gdp_defense{args.spending}.csv"
+    output_file = f"outputs/defense/max_gdp_defense{spending_level}.csv"
     result_df.to_csv(output_file, index=False)
     print(f"Results saved to '{output_file}'\n")
+
+
+def run_full_range() -> None:
+    """Run optimization for the full range of defense spending levels and generate visualization."""
+    # Ensure output directory exists
+    Path("outputs/defense").mkdir(parents=True, exist_ok=True)
+    
+    # Defense spending levels to generate (-4000 to 6000 in increments of 500)
+    spending_levels = list(range(-4000, 6500, 500))
+    
+    print("Generating optimization results for full defense spending range...")
+    print("=" * 70)
+    
+    successful_runs = []
+    failed_runs = []
+    
+    for level in spending_levels:
+        print(f"\nRunning optimization for ${level:,}B defense spending...")
+        try:
+            result = subprocess.run(
+                [sys.executable, __file__, "--spending", str(level)],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            successful_runs.append(level)
+            print(f"✓ Successfully generated max_gdp_defense{level}.csv")
+            # Print key output lines
+            for line in result.stdout.split('\n'):
+                if 'GDP' in line or 'Revenue' in line or 'saved' in line:
+                    print(f"  {line}")
+        except subprocess.CalledProcessError as e:
+            failed_runs.append(level)
+            print(f"✗ Failed to generate results for ${level:,}B")
+            print(f"  Error: {e.stderr}")
+    
+    print("\n" + "=" * 70)
+    print(f"Completed {len(successful_runs)}/{len(spending_levels)} optimization runs")
+    
+    if failed_runs:
+        print(f"\nFailed runs: {failed_runs}")
+    
+    # Run visualization if we have results
+    if successful_runs:
+        print("\n" + "=" * 70)
+        print("Generating visualization...")
+        try:
+            result = subprocess.run(
+                [sys.executable, "visualize_defense_spending.py"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            print(result.stdout)
+            print("✓ Visualization complete!")
+        except subprocess.CalledProcessError as e:
+            print("✗ Visualization failed:")
+            print(e.stderr)
+        except FileNotFoundError:
+            print("⚠ visualize_defense_spending.py not found, skipping visualization")
+
+
+def main() -> None:
+    """Main execution function."""
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description='Optimize policy selection with national security and equity constraints.',
+        epilog='Run without arguments to generate full range of scenarios and visualization.'
+    )
+    parser.add_argument(
+        '--spending',
+        type=int,
+        help='Run single optimization with specific NS spending in billions'
+    )
+    parser.add_argument(
+        '--all',
+        action='store_true',
+        help='Explicitly run full range of spending levels (-4000 to 6000) and generate visualization'
+    )
+    args = parser.parse_args()
+    
+    # Determine mode of operation
+    if args.spending is not None:
+        # Single optimization run
+        run_single_optimization(args.spending)
+    else:
+        # Default: Run full range + visualization
+        run_full_range()
 
 
 if __name__ == "__main__":
