@@ -533,12 +533,13 @@ def run_full_range() -> None:
         print("\n" + "=" * 70)
         print("Generating summary outputs...")
         
-        # Create policy decision matrix
-        policy_matrix_df = pd.DataFrame(policy_decisions).T
-        policy_matrix_df.index.name = 'Defense_Spending_B'
+        # Create policy decision matrix (policies as rows, spending levels as columns)
+        policy_matrix_df = pd.DataFrame(policy_decisions)
+        policy_matrix_df.index.name = 'Policy'
         policy_matrix_file = "outputs/defense/policy_decisions_matrix.csv"
         policy_matrix_df.to_csv(policy_matrix_file)
         print(f"[OK] Policy decision matrix saved to '{policy_matrix_file}'")
+        print(f"     Format: Policies as rows, defense spending levels as columns")
         
         # Create KPI summary matrix
         kpi_matrix_df = pd.DataFrame(kpi_summary).T
