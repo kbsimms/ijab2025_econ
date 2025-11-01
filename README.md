@@ -16,6 +16,159 @@ Additionally, two visualization scripts are included for analyzing and comparing
 
 All scripts share common infrastructure through centralized configuration and utility modules for consistency and maintainability.
 
+## 🔢 Full Mathematical Optimization Model
+
+### Sets
+
+Let:
+
+- **I = {1, 2, ..., n}**: Index set of all policy options
+- **E ⊂ I**: Excluded policies (e.g., new taxes)
+- **G_k ⊆ I**: 15 mutually exclusive policy groups indexed by k
+- **C = {(a, b)}**: Policy pairs with co-exclusion (if x_a = 1 ⇒ x_b = 0)
+- **N_g ⊆ I**: National Security (NS) policy groups (e.g., NS1, NS2...)
+- **N_strict ⊆ I**: NS1–NS7 policies that count toward defense spending
+
+### Decision Variables
+
+For each policy i ∈ I, define:
+
+- **x_i ∈ {0, 1}**:
+  - x_i = 1: policy i is selected
+  - x_i = 0: policy i is not selected
+
+### Parameters
+
+Each policy i has:
+
+- **g_i**: Long-run GDP impact (as a proportion, e.g., 0.01 for +1%)
+- **r_i**: 10-year dynamic revenue impact (in $B; spending is negative)
+- **s_i**: Capital stock change
+- **j_i**: Jobs impact (in FTE)
+- **w_i**: Wage rate change
+- **p20_i**: Income impact for bottom 20%
+- **p40_i**: Income impact for middle 40–60%
+- **p80_i**: Income impact for top 20%
+- **p99_i**: Income impact for top 1%
+
+Other constants:
+
+- **ε = 10^-5**: Used for strict inequality in equity constraints
+- **R**: Required national defense spending from NS1–NS7 policies (e.g., 3000)
+
+### 🎯 Stage 1 Objective: Maximize GDP
+
+```
+max Σ(i∈I) g_i * x_i
+```
+
+### ✅ Constraints
+
+#### 1. Fiscal Responsibility (Deficit Neutrality)
+
+```
+Σ(i∈I) r_i * x_i ≥ 0
+```
+
+#### 2. Economic Growth Requirements
+
+```
+Σ(i∈I) s_i * x_i ≥ 0  (Capital Stock)
+Σ(i∈I) j_i * x_i ≥ 0  (Jobs)
+Σ(i∈I) w_i * x_i ≥ 0  (Wage Rate)
+```
+
+#### 3. Equity and Distributional Fairness
+
+Let:
+
+```
+P_20 = Σ(i∈I) p20_i * x_i
+P_40 = Σ(i∈I) p40_i * x_i
+P_80 = Σ(i∈I) p80_i * x_i
+P_99 = Σ(i∈I) p99_i * x_i
+```
+
+Then:
+
+**Strict progressive income gains:**
+
+```
+P_20 - P_99 ≥ ε
+P_40 - P_99 ≥ ε
+P_20 - P_80 ≥ ε
+P_40 - P_80 ≥ ε
+```
+
+**Non-negativity for all income groups:**
+
+```
+P_20 ≥ 0, P_40 ≥ 0, P_80 ≥ 0, P_99 ≥ 0
+```
+
+#### 4. Policy Exclusions (No New Taxes)
+
+For each i ∈ E:
+
+```
+x_i = 0
+```
+
+Typical excluded policies include:
+
+- Policy 37: Corporate surtax
+- Policy 43: 5% VAT
+- Policy 49: Cadillac Tax
+- Policy 68: Replace CIT with VAT
+
+#### 5. Mutually Exclusive Groups
+
+For each group G_k (e.g., only one corporate tax structure):
+
+```
+Σ(i∈G_k) x_i ≤ 1  for all k = 1, ..., 15
+```
+
+#### 6. Policy Co-Exclusion
+
+For all (a, b) ∈ C:
+
+```
+x_a + x_b ≤ 1
+```
+
+Even though some of these are redundant (both policies excluded), they are included for robustness.
+
+#### 7. National Security Policy Exclusivity
+
+For each NS group N_g (e.g., NS1A, NS1B):
+
+```
+Σ(i∈N_g) x_i ≤ 1
+```
+
+#### 8. Defense Spending Constraint
+
+Let total spending from NS1–NS7 policies (negative revenue) match required budget R:
+
+```
+Σ(i∈N_strict) (-r_i * x_i) = R  ⇒  Σ(i∈N_strict) r_i * x_i = -R
+```
+
+Because spending is modeled as negative revenue, this ensures total NS1–NS7 policies cost exactly R billion.
+
+### 🎯 Stage 2 Objective: Maximize Revenue with Fixed GDP
+
+After solving Stage 1 and getting optimal GDP G*, we solve:
+
+```
+max Σ(i∈I) r_i * x_i
+s.t. Σ(i∈I) g_i * x_i = G*
+```
+
+All other constraints are re-imposed from Stage 1.
+
+
 ## Quick Start
 
 ### Prerequisites
