@@ -20,20 +20,26 @@ All scripts share common infrastructure through centralized configuration and ut
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- Gurobi Optimizer (requires license - free academic licenses available)
-- Excel file: `tax reform & spending menu options (v8) template.xlsx`
+- Python 3.12 or higher (project uses Python 3.12 features)
+- Gurobi Optimizer (requires license - free academic licenses available at [https://www.gurobi.com/academia/](https://www.gurobi.com/academia/))
+- Excel file: [`tax reform & spending menu options (v8) template.xlsx`](tax%20reform%20%26%20spending%20menu%20options%20(v8)%20template.xlsx)
+- uv package manager (recommended) or pip
 
 ### Installation
 
 ```bash
+# Install uv package manager (if not already installed)
+# Windows (PowerShell): irm https://astral.sh/uv/install.ps1 | iex
+# macOS/Linux: curl -LsSf https://astral.sh/uv/install.sh | sh
+# See: https://github.com/astral-sh/uv
+
 # Using uv (recommended for development)
 uv sync
 
 # Install with development dependencies
 uv sync --extra dev
 
-# Or using pip
+# Or using pip (if not using uv)
 pip install pandas gurobipy openpyxl matplotlib seaborn
 ```
 
@@ -91,7 +97,7 @@ uv run mypy .
 
 **VS Code Configuration:**
 
-The project includes [`<.vscode/settings.json>`](.vscode/settings.json:1) with:
+The project includes [`.vscode/settings.json`](.vscode/settings.json) with:
 - Pylance strict type checking
 - Ruff as default formatter
 - Format on save enabled
@@ -99,21 +105,11 @@ The project includes [`<.vscode/settings.json>`](.vscode/settings.json:1) with:
 - Performance optimizations
 - Project-specific linting rules
 
-All configurations are defined in [`pyproject.toml`](pyproject.toml:1):
-- Ruff rules (586 checks currently failing - improvement opportunity!)
-- Mypy strict settings
+All configurations are defined in [`pyproject.toml`](pyproject.toml):
+- Ruff rules and linting configuration
+- Mypy strict type checking settings
 - Build system configuration
 - Development dependencies
-
-**Current Code Quality Status:**
-
-```bash
-# Ruff: 586 errors found (348 auto-fixable)
-# Mypy: 56 type errors across 8 files
-
-# These are tracked for incremental improvement
-# New code should pass all checks
-```
 
 ### Basic Usage
 
@@ -440,12 +436,13 @@ All scripts read from: `tax reform & spending menu options (v8) template.xlsx`
 
 **National Security Policies:**
 
-- Must follow naming convention: `NSxY: Description`
-  - Where `x` is one or more digits (e.g., 1, 2, 7, 15)
-  - Where `Y` is a letter (A, B, C, etc.)
-  - Example: `NS1A: Increase defense spending by 10%`
-  - Example: `NS1B: Increase defense spending by 20%`
-  - Example: `NS2A: Modernize nuclear arsenal`
+Policies must follow the naming convention: `NSxY: Description`
+- `x` = one or more digits (e.g., 1, 2, 7, 15)
+- `Y` = a letter (A, B, C, etc.)
+- Examples:
+  - `NS1A: Increase defense spending by 10%`
+  - `NS1B: Increase defense spending by 20%`
+  - `NS2A: Modernize nuclear arsenal`
 
 ## Output
 
@@ -661,7 +658,7 @@ python visualize_policy_selection.py
 - Check the exact filename (including version number)
 - Ensure the file isn't open in Excel (may cause read errors on some systems)
 
-**"KeyError" when reading Excel****
+**"KeyError" when reading Excel**
 
 - Check that column names in Excel match expected names
 - Verify headers are in row 2 (index 1)
@@ -690,10 +687,12 @@ When adding new optimization scripts or modifying existing ones:
 
 ### Code Documentation Standards
 
-- **File-level docstrings:** Explain what the file does in plain language
-- **Function docstrings:** Include purpose, parameters, returns, and any exceptions
-- **Inline comments:** Use sparingly, only for complex logic that isn't self-explanatory
-- **Type hints:** Include for all function parameters and return values
+All code in this project follows these documentation standards:
+
+- **File-level docstrings**: Explain what the file does in plain language
+- **Function docstrings**: Include purpose, parameters, returns, and any exceptions raised
+- **Inline comments**: Used sparingly, only for complex logic that isn't self-explanatory
+- **Type hints**: Required for all function parameters and return values (enforced by mypy strict mode)
 
 ## Code Architecture
 
@@ -773,8 +772,8 @@ All scripts include comprehensive error handling:
 
 ## License
 
-[Specify license here]
+License information to be specified.
 
 ## Contact
 
-[Add contact information]
+Contact information to be added.
