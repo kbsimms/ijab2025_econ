@@ -146,7 +146,7 @@ def optimize_policy_selection(
         - Policy mutual exclusivity: At most one policy per competing group (15 groups)
         - Special policy constraints: E.g., VAT replacement excludes corporate surtax
         - NS mutual exclusivity: At most one policy per NS group
-        - NS spending minimum: At least min_ns_spending on NS1-NS7 policies
+        - NS spending target: Exactly min_ns_spending on NS1-NS7 policies
         
     Stage 2: Maximize revenue while maintaining optimal GDP
         - Same constraints as Stage 1
@@ -312,11 +312,11 @@ def optimize_policy_selection(
         )
     
     # NS spending constraint
-    # Total spending (negative revenue) from NS1-NS7 policies must be at least min_ns_spending
-    # Note: Revenue is negative for spending, so we use <= -min_ns_spending
+    # Total spending (negative revenue) from NS1-NS7 policies must equal exactly min_ns_spending
+    # Note: Revenue is negative for spending, so we use == -min_ns_spending
     stage1_model.addConstr(
-        quicksum(x[i] * revenue[i] for i in ns_strict_indices) <= -min_ns_spending,
-        name="MinimumNSSpending"
+        quicksum(x[i] * revenue[i] for i in ns_strict_indices) == -min_ns_spending,
+        name="ExactNSSpending"
     )
     
     # Solve Stage 1
@@ -407,8 +407,8 @@ def optimize_policy_selection(
         )
     
     stage2_model.addConstr(
-        quicksum(x2[i] * revenue[i] for i in ns_strict_indices) <= -min_ns_spending,
-        name="MinimumNSSpending"
+        quicksum(x2[i] * revenue[i] for i in ns_strict_indices) == -min_ns_spending,
+        name="ExactNSSpending"
     )
     
     # Additional constraint: Fix GDP to the optimal value from Stage 1

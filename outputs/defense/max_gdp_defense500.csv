@@ -22,9 +22,6 @@ S11: Expand free meals for children in the highest poverty districts,0.005,0.0,0
 S12: Facilitate re-entry for formerly incarcerated individuals through Supplemental Nutritional Assistance Program (SNAP) eligibility,0.0005,0.0,0,0.0,0.0,0.0,0.0,0.0,-10.0,-10.0,,False
 S17: Cancel student loan debt relief (Biden executive action),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,400.0,400.0,,False
 NS1B: Increase by 50% funds dedicated to Europe & NATO (including Ukraine),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-500.0,-500.0,,True
-NS2B: Increase by 50% funds dedicated to the Middle East (including Iran & Israel),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-500.0,-500.0,,True
-NS3B: Increase by 50% funds dedicated to the Indo-Pacific (including Taiwan),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-500.0,-500.0,,True
-NS7B: Make major reforms to base defense spending,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,1000.0,1000.0,,True
 15: Repeal the Tax Cuts and Jobs Act (TCJA) Individual Tax Changes,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,829.72,648.75,,False
 "17: Add a New Bracket of 45 Percent for Income Above $750,000",-0.002,-0.02,-165888,-0.001,-0.002,-0.002,-0.007,-0.021,576.22,441.05,,False
 20: Reduce the Child Tax Credit to $500,0.0005,0.0005,43923,-0.0005,-0.014,-0.005,0.0,0.0,593.35,585.22,,False

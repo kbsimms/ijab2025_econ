@@ -21,10 +21,7 @@ S10: Expand summer Electronic Benefits Transfer to all eligible children nationw
 S11: Expand free meals for children in the highest poverty districts,0.005,0.0,0,0.0,0.0,0.0,0.0,0.0,-17.0,-17.0,,False
 S12: Facilitate re-entry for formerly incarcerated individuals through Supplemental Nutritional Assistance Program (SNAP) eligibility,0.0005,0.0,0,0.0,0.0,0.0,0.0,0.0,-10.0,-10.0,,False
 S17: Cancel student loan debt relief (Biden executive action),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,400.0,400.0,,False
-NS1C: Reduce by 50% runds dedicated to Europe & NATO (including Ukraine),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,500.0,500.0,,True
 NS2C: Reduce by 50% runds dedicated to the Middle East (including Iran & Israel),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,500.0,500.0,,True
-NS3A: Double funds dedicated to the Indo-Pacific (including Taiwan),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-1000.0,-1000.0,,True
-NS4C: Reduce by 50% runds dedicated to protecting the homeland,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,500.0,500.0,,True
 NS7C: Conduct fundamental restructuring of base defense spending,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,1500.0,1500.0,,True
 15: Repeal the Tax Cuts and Jobs Act (TCJA) Individual Tax Changes,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,829.72,648.75,,False
 25: Eliminate the Charitable Deduction,-0.001,-0.002,-90202,-0.0005,-0.001,-0.002,-0.009,-0.014,747.4,694.52,,False

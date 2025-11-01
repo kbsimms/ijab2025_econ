@@ -23,9 +23,8 @@ S11: Expand free meals for children in the highest poverty districts,0.005,0.0,0
 S12: Facilitate re-entry for formerly incarcerated individuals through Supplemental Nutritional Assistance Program (SNAP) eligibility,0.0005,0.0,0,0.0,0.0,0.0,0.0,0.0,-10.0,-10.0,,False
 S17: Cancel student loan debt relief (Biden executive action),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,400.0,400.0,,False
 NS2C: Reduce by 50% runds dedicated to the Middle East (including Iran & Israel),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,500.0,500.0,,True
-NS3C: Reduce by 50% runds dedicated to the Indo-Pacific (including Taiwan),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,500.0,500.0,,True
-NS4C: Reduce by 50% runds dedicated to protecting the homeland,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,500.0,500.0,,True
-NS7B: Make major reforms to base defense spending,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,1000.0,1000.0,,True
+NS5C: Reduce by 50% runds dedicated to advanced national security technology,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,500.0,500.0,,True
+NS7C: Conduct fundamental restructuring of base defense spending,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,1500.0,1500.0,,True
 15: Repeal the Tax Cuts and Jobs Act (TCJA) Individual Tax Changes,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,829.72,648.75,,False
 19: Eliminate the Child Tax Credit,0.001,0.001,99527,0.0005,-0.031,-0.008,0.001,0.001,890.72,917.22,,False
 "24: Lower the Home Mortgage Interest Deduction Cap to $500,000 in Principal",-0.001,-0.019,-29557,-0.0005,-0.006,-0.009,-0.018,-0.011,147.51,132.22,,False
