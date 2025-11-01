@@ -1,19 +1,34 @@
 """
 Policy Optimization Script - Basic GDP Maximization
 
-Maximizes GDP growth subject to revenue neutrality constraint and National 
-Security mutual exclusivity constraints.
+WHAT THIS SCRIPT DOES:
+This script finds the best combination of economic policies to maximize long-term
+GDP growth while ensuring the government doesn't increase the deficit and national
+security policies remain coherent.
 
-This script maximizes GDP growth subject to:
-- Fiscal constraint: Revenue neutrality (no increase in deficit)
-- National Security (NS) constraints: Mutual exclusivity within NS policy groups
+Think of it as answering: "Which tax and spending policies should we adopt to grow
+the economy as much as possible, without adding to the national debt, while making
+sure our defense policies make sense together?"
 
-Key Features:
-1. Revenue Neutrality: Ensures total dynamic revenue is non-negative
-2. National Security (NS) Constraints:
-   - NS policy groups (e.g., NS1A, NS1B, NS1C): Only one option per group can be selected
-   - Prevents selecting conflicting national security policies
-3. Two-stage optimization to find best GDP with tiebreaking on revenue
+HOW IT WORKS:
+The script uses advanced mathematical optimization (linear programming) to evaluate
+all possible combinations of policies and find the one that gives the highest GDP growth.
+
+CONSTRAINTS (Requirements the solution must meet):
+1. Revenue Neutrality: The total package can't increase the federal deficit
+   - All selected policies together must generate at least $0 in revenue
+   
+2. National Security Coherence: Can't select conflicting defense policies
+   - Example: Can't choose both "increase defense 10%" AND "increase defense 20%"
+   - Only one option allowed per defense policy category (NS1, NS2, etc.)
+
+OPTIMIZATION APPROACH:
+Uses a two-stage process for finding the best solution:
+- Stage 1: Find the maximum possible GDP growth
+- Stage 2: Among all solutions with that maximum GDP, pick the one with the
+           highest revenue surplus (extra fiscal room)
+
+This ensures we get not just any solution, but the BEST solution.
 """
 
 from typing import Tuple

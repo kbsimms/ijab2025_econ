@@ -1,10 +1,47 @@
 """
 Defense Spending Optimization Visualization
 
-Analyzes and visualizes the economic effects of different defense spending requirements
-across the optimization results from max_gdp_defense.py
+WHAT THIS SCRIPT DOES:
+Creates comprehensive charts showing how economic outcomes change as defense spending
+requirements vary from -$4,000B to +$6,000B. Think of it as answering: "What are
+the economic trade-offs between different levels of defense spending?"
 
-This version uses percentage changes from baseline for apple-to-apples comparisons.
+The visualization helps you see at a glance:
+- How GDP growth changes with defense spending levels
+- Effects on job creation across the spending range
+- Impact on government revenue (surplus or deficit)
+- How much capital investment changes
+- Changes in wage rates
+- Whether benefits are distributed fairly (comparing bottom 20% vs top 1%)
+
+HOW IT WORKS:
+1. Loads all CSV files from previous max_gdp_defense.py runs
+2. Calculates total economic impacts for each defense spending level
+3. Creates 6 charts showing different economic metrics
+4. Identifies optimal spending levels for various objectives
+
+PREREQUISITES:
+Must first run: python max_gdp_defense.py
+This generates the CSV files this script analyzes.
+
+USAGE:
+    python visualize_defense_spending.py
+
+OUTPUT:
+Creates 'outputs/defense/defense_spending_analysis.png' with 6 panels:
+- GDP Growth Impact across spending levels
+- Employment Impact (jobs created/lost)
+- Revenue Impact (fiscal surplus/deficit)
+- Capital Stock changes
+- Wage Rate changes
+- Equity Impact (P20 vs P99 distribution)
+
+Plus detailed console output identifying:
+- Spending level with best overall economic index
+- Maximum GDP point
+- Best revenue neutrality point
+- Most equitable distribution point
+- Overall ranges for all metrics
 """
 
 import pandas as pd

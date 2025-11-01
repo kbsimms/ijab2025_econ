@@ -1,35 +1,65 @@
 """
 Policy Optimization Script with Equity, Policy, and National Security Constraints
 
-This script maximizes GDP growth subject to:
-- Fiscal constraint: Revenue neutrality (no increase in deficit)
-- Economic constraints: Non-negative capital stock, jobs, and wage rate
-- Equity constraints: Progressive distribution favoring lower/middle income groups
-- Income constraints: All income groups must have non-negative after-tax income effects
-- Policy exclusions: Certain policies are prohibited from selection
-- Policy mutual exclusivity: Competing policies cannot both be selected
-- National security constraints: Minimum spending requirement, mutual exclusivity
+WHAT THIS SCRIPT DOES:
+This script finds the best combination of economic policies to maximize GDP growth
+while ensuring:
+- The government doesn't increase the deficit
+- Economic outcomes are positive (jobs, wages, capital all improve)
+- Lower and middle-income families benefit at least as much as wealthy families
+- National defense gets adequate funding
+- Policy choices are coherent (no contradictory policies selected together)
 
-Key Features:
-1. Equity Constraints: Ensures lower and middle income groups (P20, P40-60) benefit
-   at least as much as upper income groups (P80-100, P99)
-2. Policy Exclusions: Forces specific policies to never be selected (no new taxes)
-   - Policy 37: Corporate Surtax of 5%
-   - Policy 43: Enact a 5% VAT
-   - Policy 49: Reinstate the Cadillac Tax
-   - Policy 68: Replace CIT with 5% VAT
-3. Policy Mutual Exclusivity: Ensures incompatible policies are not selected together
-   - 15 policy groups (corporate tax, estate tax, individual tax structure, etc.)
-   - Special constraints (e.g., VAT replacement excludes corporate surtax)
-4. National Security (NS) Constraints:
-   - NS1-NS7 groups (A/B/C options): Only one option per group can be selected
-   - Configurable minimum spending requirement on NS1-NS7 selections
-5. Two-stage optimization to find best GDP with tiebreaking on revenue
+Think of it as answering: "Which policies grow the economy the most while being
+fair to working families, maintaining strong defense, and not adding to the debt?"
 
-Usage:
-    python max_gdp_defense.py                    # Default: Run full range (-4000 to 6000) + visualization
-    python max_gdp_defense.py --spending 3000    # Single run: $3,000B requirement
-    python max_gdp_defense.py --all              # Explicit: Run full range + visualization
+HOW IT WORKS:
+Uses advanced mathematical optimization to evaluate billions of policy combinations
+and find the absolute best one that meets all requirements. Can analyze:
+- Single defense spending level (e.g., "$3,000B for defense")
+- Full range of defense levels (-$4,000B to +$6,000B) to show trade-offs
+
+CONSTRAINTS (Requirements every solution must meet):
+
+1. FISCAL: Revenue neutrality - can't increase the federal deficit
+   
+2. ECONOMIC: Must improve the economy across the board
+   - More jobs created
+   - Higher wages
+   - More capital investment
+   
+3. EQUITY: Progressive benefits - working families come first
+   - Bottom 20% (P20) must benefit at least as much as top 20% (P80-100)
+   - Middle class (P40-60) must benefit at least as much as wealthy (P80-100, P99)
+   - Everyone's after-tax income must increase (no one worse off)
+   
+4. POLICY COHERENCE: Can't select contradictory policies
+   - 15 mutually exclusive groups (e.g., can't have two different corporate tax rates)
+   - Certain policies explicitly forbidden (e.g., new VAT taxes)
+   
+5. NATIONAL SECURITY: Adequate defense funding
+   - Can specify exact defense spending requirement (e.g., $3,000B)
+   - Only one option per defense category (e.g., can't both increase AND decrease)
+
+OPTIMIZATION APPROACH:
+Two-stage process ensures the very best solution:
+- Stage 1: Find maximum possible GDP growth meeting all constraints
+- Stage 2: Among all max-GDP solutions, pick one with highest revenue surplus
+
+USAGE EXAMPLES:
+    # Run full analysis across all defense spending levels
+    python max_gdp_defense.py
+    
+    # Run single optimization with $3,000B defense spending
+    python max_gdp_defense.py --spending 3000
+    
+    # Run full range (same as default, but explicit)
+    python max_gdp_defense.py --all
+
+OUTPUTS:
+- CSV files with selected policies for each spending level
+- Comprehensive visualizations showing economic trade-offs
+- Summary files with policy decisions and economic effects
 """
 
 import argparse

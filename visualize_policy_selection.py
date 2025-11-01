@@ -1,8 +1,50 @@
 """
 Policy Selection Analysis Across Defense Spending Levels
 
-This script creates a heatmap showing which tax and spending policies
-(excluding National Security policies) are selected at each defense spending level.
+WHAT THIS SCRIPT DOES:
+Creates a visual "heatmap" showing exactly which tax and spending policies are
+selected at each defense spending requirement level. Think of it as answering:
+"Which specific policies get chosen when we require different defense spending amounts?"
+
+The heatmap makes it easy to see:
+- Which policies are ALWAYS selected (robust across all scenarios)
+- Which policies are NEVER selected (dominated by better options)
+- Which policies substitute for each other as spending requirements change
+- How policy choices shift between defense spending levels
+
+This is extremely useful for understanding:
+- Policy stability: Which recommendations are consistent?
+- Policy flexibility: Where do choices change?
+- Substitution patterns: Which policies compete with each other?
+
+HOW IT WORKS:
+1. Loads all CSV files from max_gdp_defense.py runs
+2. Extracts which policies were selected at each spending level
+3. Creates a grid: rows=policies, columns=spending levels
+4. Colors: Green=selected, Gray=not selected
+
+PREREQUISITES:
+Must first run: python max_gdp_defense.py
+This generates the CSV files this script analyzes.
+
+USAGE:
+    python visualize_policy_selection.py
+
+OUTPUT:
+Creates 'outputs/defense/policy_selection_heatmap.png'
+- Each row is one policy option
+- Each column is one defense spending level
+- Green cells show when a policy is selected
+- Patterns reveal policy substitution as requirements change
+
+National Security (NS) policies are excluded from the main heatmap since
+they're the primary variable being changed across scenarios.
+
+INTERPRETING THE HEATMAP:
+- Solid green row = Policy selected at all spending levels (robust recommendation)
+- Solid gray row = Policy never selected (dominated by alternatives)
+- Striped pattern = Policy selected only at certain spending levels (conditional choice)
+- Vertical patterns = Major policy substitution at specific spending thresholds
 """
 
 import pandas as pd
