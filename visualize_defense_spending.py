@@ -50,25 +50,40 @@ import numpy as np
 from pathlib import Path
 from matplotlib.ticker import FuncFormatter, PercentFormatter
 
+from config import SPENDING_RANGE, COLUMNS
+from logger import get_logger, LogLevel
+from validation import ValidationError
+
+# Initialize logger
+logger = get_logger(__name__, level=LogLevel.INFO)
+
 # Ensure output directory exists
 output_dir = Path('outputs/defense')
-output_dir.mkdir(parents=True, exist_ok=True)
+try:
+    output_dir.mkdir(parents=True, exist_ok=True)
+except Exception as e:
+    logger.error(f"Cannot create output directory: {e}")
+    raise
 
-# Load all optimization results (-4000 to 6000 in increments of 500)
-spending_levels = list(range(-4000, 6500, 500))
+# Load all optimization results from config range
+spending_levels = list(range(
+    SPENDING_RANGE["min"],
+    SPENDING_RANGE["max"],
+    SPENDING_RANGE["step"]
+))
 results = {}
 
-print("Loading optimization results...")
+logger.info(f"Loading optimization results for {len(spending_levels)} spending levels...")
 for level in spending_levels:
     file_path = output_dir / f'max_gdp_defense{level}.csv'
     if file_path.exists():
         results[level] = pd.read_csv(file_path)
-        print(f"  [OK] Loaded {file_path}: {len(results[level])} policies selected")
+        logger.info(f"  ✓ Loaded {file_path.name}: {len(results[level])} policies selected")
     else:
-        print(f"  [MISSING] {file_path}")
+        logger.warning(f"  ⚠ Missing {file_path.name}")
 
 # Calculate aggregate metrics for each spending level
-print("\nCalculating aggregate metrics...")
+logger.info("Calculating aggregate metrics...")
 metrics = {
     'spending': [],
     'gdp': [],
@@ -92,28 +107,28 @@ for level in spending_levels:
     
     df = results[level]
     metrics['spending'].append(level)
-    metrics['gdp'].append(df['Long-Run Change in GDP'].sum())
-    metrics['capital'].append(df['Capital Stock'].sum())
-    metrics['jobs'].append(df['Full-Time Equivalent Jobs'].sum())
-    metrics['wage'].append(df['Wage Rate'].sum())
-    metrics['revenue'].append(df['Dynamic 10-Year Revenue (billions)'].sum())
-    metrics['static_revenue'].append(df['Static 10-Year Revenue (billions)'].sum())
-    metrics['p20'].append(df['P20'].sum())
-    metrics['p40_60'].append(df['P40-60'].sum())
-    metrics['p80_100'].append(df['P80-100'].sum())
-    metrics['p99'].append(df['P99'].sum())
+    metrics['gdp'].append(df[COLUMNS["gdp"]].sum())
+    metrics['capital'].append(df[COLUMNS["capital"]].sum())
+    metrics['jobs'].append(df[COLUMNS["jobs"]].sum())
+    metrics['wage'].append(df[COLUMNS["wage"]].sum())
+    metrics['revenue'].append(df[COLUMNS["dynamic_revenue"]].sum())
+    metrics['static_revenue'].append(df[COLUMNS["static_revenue"]].sum())
+    metrics['p20'].append(df[COLUMNS["p20"]].sum())
+    metrics['p40_60'].append(df[COLUMNS["p40_60"]].sum())
+    metrics['p80_100'].append(df[COLUMNS["p80_100"]].sum())
+    metrics['p99'].append(df[COLUMNS["p99"]].sum())
     metrics['n_policies'].append(len(df))
     metrics['n_ns_policies'].append(len(df[df['is_NS'] == True]))
     
     # Calculate actual NS spending (negative revenue from NS policies)
-    ns_revenue = df[df['is_NS'] == True]['Dynamic 10-Year Revenue (billions)'].sum()
+    ns_revenue = df[df['is_NS'] == True][COLUMNS["dynamic_revenue"]].sum()
     metrics['ns_spending'].append(-ns_revenue)  # Convert to positive spending
 
 # Convert to DataFrame for easier analysis
 metrics_df = pd.DataFrame(metrics)
 
-print("\nAggregate Metrics Summary:")
-print(metrics_df.to_string(index=False))
+logger.info("Aggregate Metrics Summary:")
+logger.info(f"\n{metrics_df.to_string(index=False)}")
 
 # Find baseline index (spending = 0)
 try:
@@ -124,7 +139,7 @@ except ValueError:
     baseline_idx = min(range(len(metrics['spending'])), 
                       key=lambda i: abs(metrics['spending'][i]))
     baseline_exists = False
-    print(f"\nWarning: $0B baseline not found. Using ${metrics['spending'][baseline_idx]:,}B as reference.")
+    logger.warning(f"$0B baseline not found. Using ${metrics['spending'][baseline_idx]:,}B as reference.")
 
 # Helper function to normalize values to 0-100 scale
 def normalize_to_100(values, reverse=False):
@@ -196,8 +211,8 @@ for gdp, revenue in zip(metrics['gdp'], metrics['revenue']):
 
 # Calculate Composite Economic Index with 50% equity weighting
 # Weights: 50% Equity, 20% GDP, 20% Jobs, 10% Revenue
-print("\nCalculating Composite Economic Index...")
-print("  Weights: 50% Equity + 20% GDP + 20% Jobs + 10% Revenue")
+logger.info("Calculating Composite Economic Index...")
+logger.info("  Weights: 50% Equity + 20% GDP + 20% Jobs + 10% Revenue")
 
 # Normalize each component to 0-100
 gdp_norm = normalize_to_100(metrics['gdp'])
@@ -213,11 +228,11 @@ composite_index = (
     0.10 * revenue_norm
 )
 
-print("  GDP component range: {:.1f} to {:.1f}".format(gdp_norm.min(), gdp_norm.max()))
-print("  Jobs component range: {:.1f} to {:.1f}".format(jobs_norm.min(), jobs_norm.max()))
-print("  Revenue component range: {:.1f} to {:.1f}".format(revenue_norm.min(), revenue_norm.max()))
-print("  Equity component range: {:.1f} to {:.1f}".format(equity_norm.min(), equity_norm.max()))
-print("  Composite index range: {:.1f} to {:.1f}".format(composite_index.min(), composite_index.max()))
+logger.debug("  GDP component range: {:.1f} to {:.1f}".format(gdp_norm.min(), gdp_norm.max()))
+logger.debug("  Jobs component range: {:.1f} to {:.1f}".format(jobs_norm.min(), jobs_norm.max()))
+logger.debug("  Revenue component range: {:.1f} to {:.1f}".format(revenue_norm.min(), revenue_norm.max()))
+logger.debug("  Equity component range: {:.1f} to {:.1f}".format(equity_norm.min(), equity_norm.max()))
+logger.info("  Composite index range: {:.1f} to {:.1f}".format(composite_index.min(), composite_index.max()))
 
 # Create comprehensive visualization with 2x3 grid focused on key metrics
 fig, axes = plt.subplots(2, 3, figsize=(18, 10))
@@ -333,101 +348,102 @@ ax6.fill_between(metrics['spending'], p20_pct, p99_pct,
 
 plt.tight_layout()
 output_file = output_dir / 'defense_spending_analysis.png'
-plt.savefig(output_file, dpi=300, bbox_inches='tight')
-print(f"\n[OK] Visualization saved to '{output_file}'")
-plt.close()
+try:
+    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    logger.info(f"✓ Visualization saved to '{output_file}'")
+except Exception as e:
+    logger.error(f"Failed to save visualization: {e}")
+    raise
+finally:
+    plt.close()
 
 # Additional analysis: Print key insights
-print("\n" + "="*80)
-print("KEY INSIGHTS: APPLE-TO-APPLES COMPARISON")
-print("="*80)
+logger.section("KEY INSIGHTS: APPLE-TO-APPLES COMPARISON")
 
 # Find spending level with maximum composite index
 max_index_idx = np.argmax(composite_index)
-print(f"\n1. Highest Composite Economic Index:")
-print(f"   Defense Spending: ${metrics['spending'][max_index_idx]:,}B")
-print(f"   Composite Index: {composite_index[max_index_idx]:.1f}/100")
-print(f"   Components:")
-print(f"     - Equity (50%): {equity_norm[max_index_idx]:.1f} -> {0.50 * equity_norm[max_index_idx]:.1f} points")
-print(f"     - GDP (20%): {gdp_norm[max_index_idx]:.1f} -> {0.20 * gdp_norm[max_index_idx]:.1f} points")
-print(f"     - Jobs (20%): {jobs_norm[max_index_idx]:.1f} -> {0.20 * jobs_norm[max_index_idx]:.1f} points")
-print(f"     - Revenue (10%): {revenue_norm[max_index_idx]:.1f} -> {0.10 * revenue_norm[max_index_idx]:.1f} points")
-print(f"   Actual Values:")
-print(f"     - Equity Ratio: {equity_ratio[max_index_idx]:.2f}x")
-print(f"     - GDP: {metrics['gdp'][max_index_idx]:+.4f}%")
-print(f"     - Jobs: {metrics['jobs'][max_index_idx]:,.0f}")
-print(f"     - Revenue: ${metrics['revenue'][max_index_idx]:,.2f}B")
+logger.info("\n1. Highest Composite Economic Index:")
+logger.info(f"   Defense Spending: ${metrics['spending'][max_index_idx]:,}B")
+logger.info(f"   Composite Index: {composite_index[max_index_idx]:.1f}/100")
+logger.info(f"   Components:")
+logger.info(f"     - Equity (50%): {equity_norm[max_index_idx]:.1f} -> {0.50 * equity_norm[max_index_idx]:.1f} points")
+logger.info(f"     - GDP (20%): {gdp_norm[max_index_idx]:.1f} -> {0.20 * gdp_norm[max_index_idx]:.1f} points")
+logger.info(f"     - Jobs (20%): {jobs_norm[max_index_idx]:.1f} -> {0.20 * jobs_norm[max_index_idx]:.1f} points")
+logger.info(f"     - Revenue (10%): {revenue_norm[max_index_idx]:.1f} -> {0.10 * revenue_norm[max_index_idx]:.1f} points")
+logger.info(f"   Actual Values:")
+logger.info(f"     - Equity Ratio: {equity_ratio[max_index_idx]:.2f}x")
+logger.info(f"     - GDP: {metrics['gdp'][max_index_idx]:+.4f}%")
+logger.info(f"     - Jobs: {metrics['jobs'][max_index_idx]:,.0f}")
+logger.info(f"     - Revenue: ${metrics['revenue'][max_index_idx]:,.2f}B")
 
 # Find spending level with maximum GDP
 max_gdp_idx = metrics['gdp'].index(max(metrics['gdp']))
 baseline_gdp = metrics['gdp'][baseline_idx]
-print(f"\n2. Maximum GDP Impact:")
-print(f"   Defense Spending: ${metrics['spending'][max_gdp_idx]:,}B")
-print(f"   GDP Change: {metrics['gdp'][max_gdp_idx]:+.4f}% ({gdp_pp_diff[max_gdp_idx]:+.4f} pp from baseline)")
-print(f"   Jobs: {metrics['jobs'][max_gdp_idx]:,.0f} ({jobs_diff[max_gdp_idx]:+,.0f} from baseline)")
-print(f"   Revenue Impact: ${metrics['revenue'][max_gdp_idx]:,.2f}B")
-print(f"   Composite Index: {composite_index[max_gdp_idx]:.1f}/100")
+logger.info(f"\n2. Maximum GDP Impact:")
+logger.info(f"   Defense Spending: ${metrics['spending'][max_gdp_idx]:,}B")
+logger.info(f"   GDP Change: {metrics['gdp'][max_gdp_idx]:+.4f}% ({gdp_pp_diff[max_gdp_idx]:+.4f} pp from baseline)")
+logger.info(f"   Jobs: {metrics['jobs'][max_gdp_idx]:,.0f} ({jobs_diff[max_gdp_idx]:+,.0f} from baseline)")
+logger.info(f"   Revenue Impact: ${metrics['revenue'][max_gdp_idx]:,.2f}B")
+logger.info(f"   Composite Index: {composite_index[max_gdp_idx]:.1f}/100")
 
 # Find spending level closest to revenue neutrality
 revenue_abs_values = [abs(r) for r in metrics['revenue']]
 best_revenue_idx = revenue_abs_values.index(min(revenue_abs_values))
-print(f"\n3. Best Revenue Neutrality:")
-print(f"   Defense Spending: ${metrics['spending'][best_revenue_idx]:,}B")
-print(f"   Revenue Impact: ${metrics['revenue'][best_revenue_idx]:,.2f}B")
-print(f"   GDP Change: {metrics['gdp'][best_revenue_idx]:+.4f}%")
-print(f"   Jobs: {metrics['jobs'][best_revenue_idx]:,.0f}")
-print(f"   Composite Index: {composite_index[best_revenue_idx]:.1f}/100")
+logger.info(f"\n3. Best Revenue Neutrality:")
+logger.info(f"   Defense Spending: ${metrics['spending'][best_revenue_idx]:,}B")
+logger.info(f"   Revenue Impact: ${metrics['revenue'][best_revenue_idx]:,.2f}B")
+logger.info(f"   GDP Change: {metrics['gdp'][best_revenue_idx]:+.4f}%")
+logger.info(f"   Jobs: {metrics['jobs'][best_revenue_idx]:,.0f}")
+logger.info(f"   Composite Index: {composite_index[best_revenue_idx]:.1f}/100")
 
 # Find most equitable distribution
 max_equity_idx = equity_ratio.index(max(equity_ratio))
-print(f"\n4. Most Equitable Distribution:")
-print(f"   Defense Spending: ${metrics['spending'][max_equity_idx]:,}B")
-print(f"   Equity Ratio (P20/P99): {equity_ratio[max_equity_idx]:.2f}x")
-print(f"   P20 Benefit: {metrics['p20'][max_equity_idx]:+.4f}")
-print(f"   P99 Benefit: {metrics['p99'][max_equity_idx]:+.4f}")
-print(f"   Composite Index: {composite_index[max_equity_idx]:.1f}/100")
+logger.info(f"\n4. Most Equitable Distribution:")
+logger.info(f"   Defense Spending: ${metrics['spending'][max_equity_idx]:,}B")
+logger.info(f"   Equity Ratio (P20/P99): {equity_ratio[max_equity_idx]:.2f}x")
+logger.info(f"   P20 Benefit: {metrics['p20'][max_equity_idx]:+.4f}")
+logger.info(f"   P99 Benefit: {metrics['p99'][max_equity_idx]:+.4f}")
+logger.info(f"   Composite Index: {composite_index[max_equity_idx]:.1f}/100")
 
 # Find best marginal efficiency (excluding extreme values)
 valid_marginal = [(i, val) for i, val in enumerate(marginal_gdp) if val > 0 and val < 1e6]
 if valid_marginal:
     best_marginal_idx, best_marginal_val = max(valid_marginal, key=lambda x: x[1])
     marginal_spending = marginal_spending_points[best_marginal_idx]
-    print(f"\n4. Best Marginal Efficiency:")
-    print(f"   Defense Spending Range: ${marginal_spending - 250:,.0f}B to ${marginal_spending + 250:,.0f}B")
-    print(f"   Marginal GDP: {best_marginal_val:.6f} per $1B increase")
+    logger.info(f"\n5. Best Marginal Efficiency:")
+    logger.info(f"   Defense Spending Range: ${marginal_spending - 250:,.0f}B to ${marginal_spending + 250:,.0f}B")
+    logger.info(f"   Marginal GDP: {best_marginal_val:.6f} per $1B increase")
 
 # Baseline comparison (if exists)
 if baseline_exists:
-    print(f"\n5. Baseline Metrics (${metrics['spending'][baseline_idx]:,}B):")
-    print(f"   Composite Index: {composite_index[baseline_idx]:.1f}/100")
-    print(f"   GDP: {metrics['gdp'][baseline_idx]:+.4f}%")
-    print(f"   Jobs: {metrics['jobs'][baseline_idx]:,.0f}")
-    print(f"   Revenue: ${metrics['revenue'][baseline_idx]:,.2f}B")
-    print(f"   Equity Ratio: {equity_ratio[baseline_idx]:.2f}x")
+    logger.info(f"\n6. Baseline Metrics (${metrics['spending'][baseline_idx]:,}B):")
+    logger.info(f"   Composite Index: {composite_index[baseline_idx]:.1f}/100")
+    logger.info(f"   GDP: {metrics['gdp'][baseline_idx]:+.4f}%")
+    logger.info(f"   Jobs: {metrics['jobs'][baseline_idx]:,.0f}")
+    logger.info(f"   Revenue: ${metrics['revenue'][baseline_idx]:,.2f}B")
+    logger.info(f"   Equity Ratio: {equity_ratio[baseline_idx]:.2f}x")
 
 # Range analysis
-print(f"\n6. Overall Ranges:")
+logger.info(f"\n7. Overall Ranges:")
 gdp_range = max(metrics['gdp']) - min(metrics['gdp'])
 jobs_range = max(metrics['jobs']) - min(metrics['jobs'])
 revenue_range = max(metrics['revenue']) - min(metrics['revenue'])
-print(f"   GDP Range: {gdp_range:.4f}% ({min(metrics['gdp']):+.4f}% to {max(metrics['gdp']):+.4f}%)")
-print(f"   Jobs Range: {jobs_range:,.0f} ({min(metrics['jobs']):,.0f} to {max(metrics['jobs']):,.0f})")
-print(f"   Revenue Range: ${revenue_range:,.2f}B (${min(metrics['revenue']):,.2f}B to ${max(metrics['revenue']):,.2f}B)")
+logger.info(f"   GDP Range: {gdp_range:.4f}% ({min(metrics['gdp']):+.4f}% to {max(metrics['gdp']):+.4f}%)")
+logger.info(f"   Jobs Range: {jobs_range:,.0f} ({min(metrics['jobs']):,.0f} to {max(metrics['jobs']):,.0f})")
+logger.info(f"   Revenue Range: ${revenue_range:,.2f}B (${min(metrics['revenue']):,.2f}B to ${max(metrics['revenue']):,.2f}B)")
 
-print("\n" + "="*80)
-print("COMPOSITE INDEX METHODOLOGY:")
-print("  • Score 0-100 combining four normalized components:")
-print("    - Equity (50%): P20/P99 ratio normalized to 0-100")
-print("    - GDP (20%): Long-run GDP % change normalized to 0-100")
-print("    - Jobs (20%): Full-time equivalent jobs normalized to 0-100")
-print("    - Revenue (10%): Dynamic 10-year revenue normalized to 0-100")
-print("  • Higher scores indicate better overall economic + equity outcomes")
-print("  • Heavy equity weighting prioritizes distributive fairness")
-print("\nOTHER METRICS:")
-print("  • GDP: Long-run % change in GDP (e.g., 0.14% = 0.14 percentage points)")
-print("  • Jobs: Actual full-time equivalent jobs created")
-print("  • Revenue: Dynamic 10-year revenue in billions of dollars")
-print("  • Equity ratio: P20/P99 (higher = more equitable)")
-print("  • 'pp' = percentage points (e.g., from 0.13% to 0.14% = +0.01 pp)")
-print("="*80)
-print(f"\nVisualization complete! Check '{output_dir / 'defense_spending_analysis.png'}'")
+logger.section("COMPOSITE INDEX METHODOLOGY")
+logger.info("  • Score 0-100 combining four normalized components:")
+logger.info("    - Equity (50%): P20/P99 ratio normalized to 0-100")
+logger.info("    - GDP (20%): Long-run GDP % change normalized to 0-100")
+logger.info("    - Jobs (20%): Full-time equivalent jobs normalized to 0-100")
+logger.info("    - Revenue (10%): Dynamic 10-year revenue normalized to 0-100")
+logger.info("  • Higher scores indicate better overall economic + equity outcomes")
+logger.info("  • Heavy equity weighting prioritizes distributive fairness")
+logger.info("\nOTHER METRICS:")
+logger.info("  • GDP: Long-run % change in GDP (e.g., 0.14% = 0.14 percentage points)")
+logger.info("  • Jobs: Actual full-time equivalent jobs created")
+logger.info("  • Revenue: Dynamic 10-year revenue in billions of dollars")
+logger.info("  • Equity ratio: P20/P99 (higher = more equitable)")
+logger.info("  • 'pp' = percentage points (e.g., from 0.13% to 0.14% = +0.01 pp)")
+logger.info(f"\n✓ Visualization complete! Check '{output_dir / 'defense_spending_analysis.png'}'")

@@ -19,11 +19,13 @@ All scripts share common infrastructure through centralized configuration and ut
 ## Quick Start
 
 ### Prerequisites
+
 - Python 3.8 or higher
 - Gurobi Optimizer (requires license - free academic licenses available)
 - Excel file: `tax reform & spending menu options (v8) template.xlsx`
 
 ### Installation
+
 ```bash
 # Install dependencies
 pip install pandas gurobipy openpyxl matplotlib seaborn
@@ -35,33 +37,43 @@ uv sync
 ### Basic Usage
 
 **1. Run basic GDP optimization:**
+
 ```bash
 python max_gdp.py
 ```
+
 Output: `max_gdp.csv` with selected policies
 
 **2. Run defense spending analysis (full range):**
+
 ```bash
 python max_gdp_defense.py
 ```
+
 Output: Multiple CSV files in `outputs/defense/` directory + visualization
 
 **3. Run single defense spending level:**
+
 ```bash
 python max_gdp_defense.py --spending 3000
 ```
+
 Output: `outputs/defense/max_gdp_defense3000.csv`
 
 **4. Visualize existing defense results:**
+
 ```bash
 python visualize_defense_spending.py
 ```
+
 Output: `outputs/defense/defense_spending_analysis.png`
 
 **5. Analyze policy selections across spending levels:**
+
 ```bash
 python visualize_policy_selection.py
 ```
+
 Output: `outputs/defense/policy_selection_heatmap.png`
 
 ## Project Structure
@@ -86,6 +98,7 @@ ijab_econ_scenario_analysis/
 ### Key Modules
 
 **config.py** - Centralized Configuration
+
 - Column name mappings (standardized across all scripts)
 - National Security (NS) policy regex patterns
 - Optimization settings (Gurobi output, epsilon values, tolerances)
@@ -93,6 +106,7 @@ ijab_econ_scenario_analysis/
 - Display formatting constants
 
 **utils.py** - Shared Utilities
+
 - `load_policy_data()` - Standardized data loading from Excel
 - `extract_ns_groups()` - NS policy group identification
 - `get_ns_strict_indices()` - NS1-NS7 policy indices for defense scripts
@@ -103,9 +117,11 @@ ijab_econ_scenario_analysis/
 ## Common Features
 
 ### 1. Revenue Neutrality
+
 All scripts ensure fiscal responsibility by requiring that the total dynamic revenue impact is non-negative (≥ $0 billion). This prevents selecting policy packages that would increase the federal deficit.
 
 ### 2. National Security (NS) Mutual Exclusivity
+
 All scripts include NS mutual exclusivity constraints to prevent selecting conflicting national security policies.
 
 - **How it works:** Policies are grouped by their NS prefix (e.g., NS1, NS2, NS3, etc.)
@@ -114,11 +130,14 @@ All scripts include NS mutual exclusivity constraints to prevent selecting confl
 - **Purpose:** Ensures coherent national security strategy by preventing contradictory policy selections
 
 ### 3. Two-Stage Optimization
+
 All scripts use a sophisticated two-stage approach:
+
 - **Stage 1:** Find the maximum achievable GDP growth given all constraints
 - **Stage 2:** Among solutions achieving optimal GDP, select the best according to secondary criteria (varies by script)
 
 ### 4. Consistent Column Naming
+
 All scripts now use standardized column names from `config.py`, ensuring consistency and making maintenance easier.
 
 ## Scripts
@@ -130,17 +149,20 @@ All scripts now use standardized column names from `config.py`, ensuring consist
 **Objective:** Maximize GDP growth
 
 **Constraints:**
+
 - Revenue neutrality (total dynamic revenue ≥ $0)
 - NS mutual exclusivity (at most one policy per NS group)
 
 **Tiebreaking:** Maximizes revenue surplus among optimal GDP solutions
 
 **How to Run:**
+
 ```bash
 python max_gdp.py
 ```
 
 **What it Does:**
+
 1. Loads policy data from Excel file
 2. Identifies National Security policy groups
 3. Stage 1: Finds maximum achievable GDP growth
@@ -149,11 +171,13 @@ python max_gdp.py
 6. Saves selected policies to CSV
 
 **Output:** `max_gdp.csv` containing:
+
 - All selected policy options
 - Their individual impacts (GDP, revenue, jobs, etc.)
 - Distributional effects by income group
 
 **Console Output Includes:**
+
 - Revenue raising vs. reducing policies
 - Total GDP impact
 - Capital stock change
@@ -172,6 +196,7 @@ python max_gdp.py
 **Objective:** Maximize GDP growth with strong national security funding and progressive distribution
 
 **Constraints:**
+
 - **Fiscal:** Revenue neutrality (total dynamic revenue ≥ $0)
 - **Economic:** Non-negative capital stock, jobs, and wage rate
 - **Equity:** Progressive distribution
@@ -200,6 +225,7 @@ python max_gdp_defense.py --all
 **What it Does:**
 
 **Single Run Mode** (`--spending AMOUNT`):
+
 1. Loads policy data from Excel
 2. Identifies NS policy groups and NS1-NS7 policies
 3. Defines policy mutual exclusivity groups (15 groups)
@@ -209,6 +235,7 @@ python max_gdp_defense.py --all
 7. Saves results to `outputs/defense/max_gdp_defense{spending}.csv`
 
 **Full Range Mode** (default):
+
 1. Runs optimization for each spending level from -$4,000B to +$6,000B in $500B increments
 2. Saves individual CSV files for each spending level
 3. Generates summary files:
@@ -217,16 +244,19 @@ python max_gdp_defense.py --all
 4. Automatically calls visualization script to generate charts
 
 **Outputs:**
+
 - **CSV files:** `outputs/defense/max_gdp_defense{spending}.csv` for each spending level
 - **Summary files:** Policy decision matrix and economic effects summary
 - **Visualization:** `outputs/defense/defense_spending_analysis.png` (when running full range)
 
 **Default Behavior:** When run without arguments, the script automatically:
+
 1. Runs optimizations for all defense spending levels (-4000B to 6000B in 500B increments)
 2. Saves results to `outputs/defense/` directory
 3. Generates comprehensive visualization showing trade-offs across spending levels
 
 **Policy Exclusions:** The following policies are specifically excluded from selection:
+
 - Policy 37: Corporate Surtax of 5%
 - Policy 43: Enact a 5% VAT
 - Policy 49: Reinstate the Cadillac Tax
@@ -241,6 +271,7 @@ python max_gdp_defense.py --all
 **Purpose:** Creates comprehensive visualizations analyzing how economic outcomes vary across different defense spending requirements.
 
 **How to Run:**
+
 ```bash
 python visualize_defense_spending.py
 ```
@@ -248,6 +279,7 @@ python visualize_defense_spending.py
 **Prerequisites:** Must have already run `max_gdp_defense.py` in full range mode to generate the CSV files.
 
 **What it Does:**
+
 1. Loads all optimization results from `outputs/defense/max_gdp_defense*.csv`
 2. Calculates aggregate metrics for each spending level:
    - GDP growth, capital stock, jobs, wages
@@ -270,6 +302,7 @@ python visualize_defense_spending.py
 **Output:** `outputs/defense/defense_spending_analysis.png` - A comprehensive 6-panel chart
 
 **Key Insights Provided:**
+
 - Trade-offs between defense spending and economic growth
 - Relationship between spending levels and job creation
 - Revenue neutrality points across the spending range
@@ -283,6 +316,7 @@ python visualize_defense_spending.py
 **Purpose:** Creates heatmap visualizations showing which specific tax and spending policies are selected at each defense spending level.
 
 **How to Run:**
+
 ```bash
 python visualize_policy_selection.py
 ```
@@ -290,6 +324,7 @@ python visualize_policy_selection.py
 **Prerequisites:** Must have already run `max_gdp_defense.py` in full range mode.
 
 **What it Does:**
+
 1. Loads all optimization results from `outputs/defense/`
 2. Extracts which policies were selected at each spending level
 3. Creates a heatmap with:
@@ -301,6 +336,7 @@ python visualize_policy_selection.py
 **Output:** `outputs/defense/policy_selection_heatmap.png`
 
 **Use Cases:**
+
 - Identify which policies are always selected (robust across all scenarios)
 - Find which policies are never selected (dominated options)
 - See how policy selections change as defense spending varies
@@ -311,6 +347,7 @@ python visualize_policy_selection.py
 All scripts read from: `tax reform & spending menu options (v8) template.xlsx`
 
 **Expected Excel Format:**
+
 - Sheet name: `Sheet1`
 - Headers in row 2 (index 1)
 - Columns:
@@ -324,6 +361,7 @@ All scripts read from: `tax reform & spending menu options (v8) template.xlsx`
   - `Dynamic 10-Year Revenue (billions)`: Dynamic revenue estimate
 
 **National Security Policies:**
+
 - Must follow naming convention: `NSxY: Description`
   - Where `x` is one or more digits (e.g., 1, 2, 7, 15)
   - Where `Y` is a letter (A, B, C, etc.)
@@ -334,6 +372,7 @@ All scripts read from: `tax reform & spending menu options (v8) template.xlsx`
 ## Output
 
 Each optimization script generates:
+
 1. **CSV file** with selected policies and their impacts
 2. **Console output** showing:
    - Revenue raising policies
@@ -344,18 +383,21 @@ Each optimization script generates:
    - Number of selected policies
 
 Visualization scripts generate:
+
 1. **PNG image files** with charts and heatmaps
 2. **Console output** with key insights and analysis
 
 ## Understanding the Results
 
 ### Economic Impacts
+
 - **GDP Impact:** Long-run change in GDP (percentage). Example: 0.14 means 0.14% GDP growth
 - **Capital Stock:** Change in capital stock (percentage)
 - **Jobs:** Full-time equivalent jobs created (actual number, e.g., 150,000 jobs)
 - **Wage Rate:** Change in wage rate (percentage)
 
 ### Distributional Impacts
+
 - **P20:** After-tax income change for bottom 20% of earners (percentage)
 - **P40-60:** After-tax income change for middle 40% of earners (percentage)
 - **P80-100:** After-tax income change for top 20% of earners (percentage)
@@ -364,6 +406,7 @@ Visualization scripts generate:
 **Progressive Distribution:** When P20 and P40-60 benefit more than P80-100 and P99
 
 ### Revenue Impacts
+
 - **Static Revenue:** Revenue estimate without behavioral responses (billions)
 - **Dynamic Revenue:** Revenue estimate including economic behavioral responses (billions)
 - **Positive values:** Revenue-raising (reduces deficit)
@@ -372,12 +415,14 @@ Visualization scripts generate:
 ### Reading the Visualizations
 
 **defense_spending_analysis.png:**
+
 - Each panel shows a different economic metric
 - X-axis: Defense spending change from -$4,000B to +$6,000B
 - Vertical dashed line at $0B: Baseline reference point
 - Look for trade-offs between GDP, jobs, revenue, and equity
 
 **policy_selection_heatmap.png:**
+
 - Rows: Individual policy options
 - Columns: Defense spending levels
 - Green: Policy selected at that spending level
@@ -391,19 +436,23 @@ Visualization scripts generate:
 The NS mutual exclusivity constraint ensures coherent national security policy by preventing selection of conflicting options within the same category.
 
 **Example:**
+
 ```
 NS1A: Increase defense spending by 10%
 NS1B: Increase defense spending by 20%
 NS1C: Maintain current defense spending
 ```
+
 Only one of these three can be selected (they're mutually exclusive).
 
 **Another Example:**
+
 ```
 NS2A: Modernize nuclear arsenal (aggressive timeline)
 NS2B: Modernize nuclear arsenal (moderate timeline)
 NS2C: Delay nuclear modernization
 ```
+
 Only one option from the NS2 group can be selected.
 
 ### Implementation Details
@@ -423,19 +472,24 @@ Only one option from the NS2 group can be selected.
 ## Code Architecture & Maintainability
 
 ### Centralized Configuration (`config.py`)
+
 All configuration settings, constants, and column mappings are centralized in one place:
+
 - Change column names once, affects all scripts
 - Adjust optimization parameters globally
 - Easy to add new constants or modify existing ones
 
 ### Shared Utilities (`utils.py`)
+
 Common functionality extracted to eliminate code duplication:
+
 - Standardized data loading across all scripts
 - Consistent NS group detection
 - Uniform output formatting
 - Easy to test and maintain
 
 ### Benefits of Current Structure
+
 - **DRY Principle:** Eliminated ~600 lines of duplicate code
 - **Consistency:** All scripts use same column names and patterns
 - **Maintainability:** Changes in one place propagate everywhere
@@ -446,6 +500,7 @@ Common functionality extracted to eliminate code duplication:
 ## Technical Details
 
 ### Optimization Framework
+
 - **Solver:** Gurobi (commercial-grade integer programming solver)
 - **Problem Type:** Binary Integer Linear Programming (BILP)
 - **Variables:** Binary (0 or 1) for each policy
@@ -453,11 +508,13 @@ Common functionality extracted to eliminate code duplication:
 - **Constraints:** Linear inequalities and equalities
 
 ### Two-Stage Approach Benefits
+
 1. **Stage 1** finds the frontier of what's possible
 2. **Stage 2** intelligently breaks ties using secondary objectives
 3. Ensures globally optimal solutions (not just locally optimal)
 
 ### Performance Considerations
+
 - **Single optimization:** Typically completes in seconds
 - **Full range (21 scenarios):** Takes several minutes depending on system
 - **Large Excel files:** Loading time may increase with more policies
@@ -468,38 +525,45 @@ Common functionality extracted to eliminate code duplication:
 ### Common Issues
 
 **"Gurobi license not found"**
+
 - Ensure you have a valid Gurobi license installed
-- Academic licenses are free: https://www.gurobi.com/academia/
+- Academic licenses are free: <https://www.gurobi.com/academia/>
 - Follow Gurobi's installation guide for your platform
 
 **"Model is infeasible"**
+
 - One or more constraints cannot be satisfied simultaneously
 - For defense scripts: Try a different spending level (some levels may be infeasible)
 - Check that NS policies are properly formatted
 - Verify Excel file has all required columns
 
 **"No NS policy groups detected"**
+
 - Verify policy names follow `NSxY:` pattern (e.g., `NS1A:`, `NS2B:`)
 - Check that colon (`:`) is present after NS code
 - Ensure policies exist in the Excel file
 - Check Sheet1 has data starting from row 3
 
 **"ImportError: No module named 'config' or 'utils'"**
+
 - Ensure `config.py` and `utils.py` are in the same directory as the scripts
 - Check that you're running from the correct directory
 - Try running: `python -c "import config; import utils"` to verify
 
 **"FileNotFoundError: tax reform & spending menu options (v8) template.xlsx"**
+
 - Verify the Excel file exists in the same directory
 - Check the exact filename (including version number)
 - Ensure the file isn't open in Excel (may cause read errors on some systems)
 
 **"KeyError" when reading Excel****
+
 - Check that column names in Excel match expected names
 - Verify headers are in row 2 (index 1)
 - Ensure no extra spaces in column names
 
 **Visualization scripts show "No files found"**
+
 - Run `max_gdp_defense.py` first to generate CSV files
 - Check that `outputs/defense/` directory exists and contains CSV files
 - Verify file naming matches expected pattern: `max_gdp_defense{number}.csv`
@@ -507,6 +571,7 @@ Common functionality extracted to eliminate code duplication:
 ## Development & Contributing
 
 When adding new optimization scripts or modifying existing ones:
+
 1. Import from `config` and `utils` modules
 2. Use standardized column names from `COLUMNS` dictionary
 3. Use shared utility functions for data loading and display
@@ -519,6 +584,7 @@ When adding new optimization scripts or modifying existing ones:
 10. Update this README with any new features or changes
 
 ### Code Documentation Standards
+
 - **File-level docstrings:** Explain what the file does in plain language
 - **Function docstrings:** Include purpose, parameters, returns, and any exceptions
 - **Inline comments:** Use sparingly, only for complex logic that isn't self-explanatory

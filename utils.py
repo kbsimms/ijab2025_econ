@@ -17,6 +17,17 @@ from config import (
     DISPLAY_WIDTH,
     POLICY_NAME_MAX_LENGTH
 )
+from logger import get_logger, LogLevel
+from validation import (
+    validate_excel_file,
+    validate_sheet_exists,
+    validate_dataframe,
+    validate_ns_groups,
+    ValidationError
+)
+
+# Module logger
+logger = get_logger(__name__)
 
 
 def load_policy_data(file_path: str = EXCEL_FILE_PATH) -> Tuple[pd.DataFrame, Dict[str, List[int]]]:
@@ -41,10 +52,22 @@ def load_policy_data(file_path: str = EXCEL_FILE_PATH) -> Tuple[pd.DataFrame, Di
         FileNotFoundError: If Excel file doesn't exist
         ValueError: If required columns are missing
     """
-    print("Loading policy data...")
+    logger.info("Loading policy data from Excel file...")
+    
+    # Validate Excel file exists and is readable
+    try:
+        validate_excel_file(file_path)
+        validate_sheet_exists(file_path, SHEET_NAME)
+    except ValidationError as e:
+        logger.error(f"Validation failed: {e}")
+        raise
     
     # Load the Excel file
-    xls = pd.ExcelFile(file_path)
+    try:
+        xls = pd.ExcelFile(file_path)
+    except Exception as e:
+        logger.error(f"Failed to load Excel file: {e}")
+        raise
     df = xls.parse(SHEET_NAME)
     
     # Extract headers from row 2 (index 1)
@@ -63,10 +86,23 @@ def load_policy_data(file_path: str = EXCEL_FILE_PATH) -> Tuple[pd.DataFrame, Di
         pd.to_numeric, errors='coerce'
     )
     
+    # Validate DataFrame structure and content
+    try:
+        validate_dataframe(df_clean, require_ns_policies=True)
+    except ValidationError as e:
+        logger.error(f"DataFrame validation failed: {e}")
+        raise
+    
     # Extract NS groupings for mutual exclusivity constraints
     ns_groups = extract_ns_groups(df_clean)
     
-    print(f"Loaded {len(df_clean)} policy options")
+    # Validate NS groups
+    try:
+        validate_ns_groups(ns_groups, df_clean, min_groups=1)
+    except ValidationError as e:
+        logger.warning(f"NS group validation warning: {e}")
+    
+    logger.info(f"Loaded {len(df_clean)} policy options")
     print_ns_groups(df_clean, ns_groups)
     
     return df_clean, ns_groups
@@ -124,7 +160,17 @@ def get_ns_strict_indices(df: pd.DataFrame) -> List[int]:
     ].index.tolist()
     
     # Convert DataFrame index labels to positional indices
-    ns_strict_indices = [df.index.get_loc(label) for label in matching_labels]
+    # Ensure we always get integer indices
+    ns_strict_indices: List[int] = []
+    for label in matching_labels:
+        loc = df.index.get_loc(label)
+        # get_loc can return int, slice, or boolean array
+        # We expect int for standard index lookup
+        if isinstance(loc, int):
+            ns_strict_indices.append(loc)
+        else:
+            # This shouldn't happen with unique index, but handle it
+            logger.warning(f"Unexpected index type for label {label}: {type(loc)}")
     
     return ns_strict_indices
 
@@ -138,13 +184,12 @@ def print_ns_groups(df: pd.DataFrame, ns_groups: Dict[str, List[int]]) -> None:
         ns_groups: Dict mapping NS group names to policy indices
     """
     if ns_groups:
-        print(f"Identified {len(ns_groups)} NS policy groups:")
+        logger.info(f"Identified {len(ns_groups)} NS policy groups:")
         for group, idxs in sorted(ns_groups.items()):
             policies = [df.iloc[idx][COLUMNS["option"]].split(":")[0] for idx in idxs]
-            print(f"   {group}: {', '.join(policies)} ({len(idxs)} options)")
-        print()
+            logger.info(f"   {group}: {', '.join(policies)} ({len(idxs)} options)")
     else:
-        print("WARNING: No NS policy groups detected\n")
+        logger.warning("No NS policy groups detected")
 
 
 def verify_ns_exclusivity(
@@ -170,7 +215,7 @@ def verify_ns_exclusivity(
     if not verbose or not ns_groups:
         return True
     
-    print("\nVerifying NS mutual exclusivity in solution:")
+    logger.info("Verifying NS mutual exclusivity in solution:")
     violations = []
     all_satisfied = True
     
@@ -183,16 +228,16 @@ def verify_ns_exclusivity(
             all_satisfied = False
         elif len(selected_in_group) == 1:
             policy = df.iloc[selected_in_group[0]][COLUMNS["option"]].split(":")[0]
-            print(f"  OK {group}: 1 policy selected ({policy})")
+            logger.info(f"  ✓ {group}: 1 policy selected ({policy})")
         else:
-            print(f"  OK {group}: 0 policies selected")
+            logger.debug(f"  ✓ {group}: 0 policies selected")
     
     if violations:
-        print("\nWARNING: NS MUTUAL EXCLUSIVITY VIOLATIONS DETECTED:")
+        logger.error("NS MUTUAL EXCLUSIVITY VIOLATIONS DETECTED:")
         for v in violations:
-            print(v)
+            logger.error(v)
     else:
-        print("  All NS constraints satisfied!")
+        logger.info("  ✓ All NS constraints satisfied!")
     
     return all_satisfied
 
@@ -206,9 +251,7 @@ def display_results(result_df: pd.DataFrame, gdp_impact: float, revenue_impact: 
         gdp_impact: Total GDP impact achieved
         revenue_impact: Total revenue impact achieved
     """
-    print("\n" + "="*DISPLAY_WIDTH)
-    print("OPTIMIZATION RESULTS".center(DISPLAY_WIDTH))
-    print("="*DISPLAY_WIDTH)
+    logger.section("OPTIMIZATION RESULTS")
     
     # Separate policies by positive/negative revenue impact
     positive_revenue = result_df[result_df[COLUMNS["dynamic_revenue"]] >= 0].copy()
@@ -277,9 +320,7 @@ def display_results_with_distribution(
         gdp_impact: Total GDP impact achieved
         revenue_impact: Total revenue impact achieved
     """
-    print("\n" + "="*DISPLAY_WIDTH)
-    print("OPTIMIZATION RESULTS (WITH DISTRIBUTIONAL EQUALITY)".center(DISPLAY_WIDTH))
-    print("="*DISPLAY_WIDTH)
+    logger.section("OPTIMIZATION RESULTS (WITH DISTRIBUTIONAL EQUALITY)")
     
     # Separate policies by positive/negative revenue impact
     positive_revenue = result_df[result_df[COLUMNS["dynamic_revenue"]] >= 0].copy()
@@ -290,54 +331,50 @@ def display_results_with_distribution(
     negative_revenue = negative_revenue.sort_values(COLUMNS["dynamic_revenue"], ascending=True)
     
     if len(positive_revenue) > 0:
-        print(f"\n{'REVENUE RAISING POLICIES':^{DISPLAY_WIDTH}}")
-        print("-"*DISPLAY_WIDTH)
+        logger.info(f"\n{'REVENUE RAISING POLICIES':^{DISPLAY_WIDTH}}")
+        logger.info("-"*DISPLAY_WIDTH)
         for _, row in positive_revenue.iterrows():
-            print(f"  {row[COLUMNS['option']][:POLICY_NAME_MAX_LENGTH]:<{POLICY_NAME_MAX_LENGTH}}")
-            print(f"    GDP: {row[COLUMNS['gdp']] * 100:>+7.4f}%  |  Revenue: ${row[COLUMNS['dynamic_revenue']]:>8.2f}B")
+            logger.info(f"  {row[COLUMNS['option']][:POLICY_NAME_MAX_LENGTH]:<{POLICY_NAME_MAX_LENGTH}}")
+            logger.info(f"    GDP: {row[COLUMNS['gdp']] * 100:>+7.4f}%  |  Revenue: ${row[COLUMNS['dynamic_revenue']]:>8.2f}B")
     
     if len(negative_revenue) > 0:
-        print(f"\n{'REVENUE REDUCING POLICIES':^{DISPLAY_WIDTH}}")
-        print("-"*DISPLAY_WIDTH)
+        logger.info(f"\n{'REVENUE REDUCING POLICIES':^{DISPLAY_WIDTH}}")
+        logger.info("-"*DISPLAY_WIDTH)
         for _, row in negative_revenue.iterrows():
-            print(f"  {row[COLUMNS['option']][:POLICY_NAME_MAX_LENGTH]:<{POLICY_NAME_MAX_LENGTH}}")
-            print(f"    GDP: {row[COLUMNS['gdp']] * 100:>+7.4f}%  |  Revenue: ${row[COLUMNS['dynamic_revenue']]:>8.2f}B")
+            logger.info(f"  {row[COLUMNS['option']][:POLICY_NAME_MAX_LENGTH]:<{POLICY_NAME_MAX_LENGTH}}")
+            logger.info(f"    GDP: {row[COLUMNS['gdp']] * 100:>+7.4f}%  |  Revenue: ${row[COLUMNS['dynamic_revenue']]:>8.2f}B")
     
     # Calculate totals for all metrics
-    print("\n" + "="*DISPLAY_WIDTH)
-    print("FINAL SUMMARY - TOTAL IMPACT OF SELECTED POLICIES".center(DISPLAY_WIDTH))
-    print("="*DISPLAY_WIDTH)
-    print(f"\n{'Economic Impacts':^{DISPLAY_WIDTH}}")
-    print("-"*DISPLAY_WIDTH)
-    print(f"  Long-Run Change in GDP:              {result_df[COLUMNS['gdp']].sum() * 100:>+8.4f}%")
-    print(f"  Capital Stock:                       {result_df[COLUMNS['capital']].sum() * 100:>+8.4f}%")
-    print(f"  Full-Time Equivalent Jobs:           {result_df[COLUMNS['jobs']].sum():>+10,.0f}")
-    print(f"  Wage Rate:                           {result_df[COLUMNS['wage']].sum() * 100:>+8.4f}%")
+    logger.section("FINAL SUMMARY - TOTAL IMPACT OF SELECTED POLICIES")
+    logger.info(f"{'Economic Impacts':^{DISPLAY_WIDTH}}")
+    logger.info("-"*DISPLAY_WIDTH)
+    logger.info(f"  Long-Run Change in GDP:              {result_df[COLUMNS['gdp']].sum() * 100:>+8.4f}%")
+    logger.info(f"  Capital Stock:                       {result_df[COLUMNS['capital']].sum() * 100:>+8.4f}%")
+    logger.info(f"  Full-Time Equivalent Jobs:           {result_df[COLUMNS['jobs']].sum():>+10,.0f}")
+    logger.info(f"  Wage Rate:                           {result_df[COLUMNS['wage']].sum() * 100:>+8.4f}%")
     
-    print(f"\n{'After-Tax Income Changes (by Income Percentile)':^{DISPLAY_WIDTH}}")
-    print("-"*DISPLAY_WIDTH)
+    logger.info(f"\n{'After-Tax Income Changes (by Income Percentile)':^{DISPLAY_WIDTH}}")
+    logger.info("-"*DISPLAY_WIDTH)
     p20_total = result_df[COLUMNS['p20']].sum() * 100
     p40_total = result_df[COLUMNS['p40_60']].sum() * 100
     p80_total = result_df[COLUMNS['p80_100']].sum() * 100
     p99_total = result_df[COLUMNS['p99']].sum() * 100
-    print(f"  P20 (Bottom 20%):                    {p20_total:>+8.4f}%")
-    print(f"  P40-60 (Middle Class):               {p40_total:>+8.4f}%")
-    print(f"  P80-100 (Top 20%):                   {p80_total:>+8.4f}%")
-    print(f"  P99 (Top 1%):                        {p99_total:>+8.4f}%")
+    logger.info(f"  P20 (Bottom 20%):                    {p20_total:>+8.4f}%")
+    logger.info(f"  P40-60 (Middle Class):               {p40_total:>+8.4f}%")
+    logger.info(f"  P80-100 (Top 20%):                   {p80_total:>+8.4f}%")
+    logger.info(f"  P99 (Top 1%):                        {p99_total:>+8.4f}%")
     
     # Calculate and display the range (max difference between any two groups)
     distro_values = [p20_total, p40_total, p80_total, p99_total]
     max_diff = max(distro_values) - min(distro_values)
-    print(f"\n  Distributional Range (max - min):    {max_diff:>+8.4f}%")
-    print(f"  (Constraint: must be ≤ 1.00%)")
+    logger.info(f"\n  Distributional Range (max - min):    {max_diff:>+8.4f}%")
+    logger.info(f"  (Constraint: must be ≤ 1.00%)")
     
-    print(f"\n{'Revenue Impacts':^{DISPLAY_WIDTH}}")
-    print("-"*DISPLAY_WIDTH)
-    print(f"  Static 10-Year Revenue:              ${result_df[COLUMNS['static_revenue']].sum():>10.2f} billion")
-    print(f"  Dynamic 10-Year Revenue:             ${result_df[COLUMNS['dynamic_revenue']].sum():>10.2f} billion")
+    logger.info(f"\n{'Revenue Impacts':^{DISPLAY_WIDTH}}")
+    logger.info("-"*DISPLAY_WIDTH)
+    logger.info(f"  Static 10-Year Revenue:              ${result_df[COLUMNS['static_revenue']].sum():>10.2f} billion")
+    logger.info(f"  Dynamic 10-Year Revenue:             ${result_df[COLUMNS['dynamic_revenue']].sum():>10.2f} billion")
     
-    print(f"\n{'Policy Count':^{DISPLAY_WIDTH}}")
-    print("-"*DISPLAY_WIDTH)
-    print(f"  Number of Selected Policies:         {len(result_df):>10}")
-    
-    print("\n" + "="*DISPLAY_WIDTH + "\n")
+    logger.info(f"\n{'Policy Count':^{DISPLAY_WIDTH}}")
+    logger.info("-"*DISPLAY_WIDTH)
+    logger.info(f"  Number of Selected Policies:         {len(result_df):>10}\n")

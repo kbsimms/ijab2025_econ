@@ -32,11 +32,17 @@ This ensures we get not just any solution, but the BEST solution.
 """
 
 from typing import Tuple
+import sys
 import pandas as pd
-from gurobipy import Model, GRB, quicksum
+from gurobipy import Model, GRB, quicksum, GurobiError
 
 from config import COLUMNS, SUPPRESS_GUROBI_OUTPUT
 from utils import load_policy_data, verify_ns_exclusivity, display_results
+from logger import get_logger, LogLevel
+from validation import ValidationError
+
+# Initialize logger
+logger = get_logger(__name__, level=LogLevel.INFO)
 
 
 def optimize_policy_selection(
@@ -80,10 +86,15 @@ def optimize_policy_selection(
     
     # === Stage 1: Maximize GDP subject to revenue constraint ===
     if verbose:
-        print("Running optimization (Stage 1: Maximize GDP)...")
+        logger.info("Running optimization (Stage 1: Maximize GDP)...")
     
     # Create Gurobi optimization model
-    stage1_model = Model("Stage1_MaximizeGDP")
+    try:
+        stage1_model = Model("Stage1_MaximizeGDP")
+    except GurobiError as e:
+        logger.error(f"Failed to create Gurobi model: {e}")
+        logger.error("Please ensure Gurobi license is installed and valid.")
+        raise
     if SUPPRESS_GUROBI_OUTPUT:
         stage1_model.setParam('OutputFlag', 0)
     
@@ -101,7 +112,7 @@ def optimize_policy_selection(
     # For each NS group (e.g., NS1 with options NS1A, NS1B, NS1C),
     # at most one option can be selected
     if verbose and ns_groups:
-        print(f"  Adding {len(ns_groups)} NS mutual exclusivity constraints...")
+        logger.info(f"  Adding {len(ns_groups)} NS mutual exclusivity constraints...")
     for group, idxs in ns_groups.items():
         stage1_model.addConstr(
             quicksum(x[i] for i in idxs) <= 1,
@@ -113,17 +124,40 @@ def optimize_policy_selection(
         quicksum(gdp[i] * x[i] for i in range(n)),
         GRB.MAXIMIZE
     )
-    stage1_model.optimize()
+    
+    try:
+        stage1_model.optimize()
+    except GurobiError as e:
+        logger.error(f"Stage 1 optimization failed: {e}")
+        raise
+    
+    # Check optimization status
+    if stage1_model.status != GRB.OPTIMAL:
+        logger.error(f"Stage 1 did not find optimal solution. Status: {stage1_model.status}")
+        if stage1_model.status == GRB.INFEASIBLE:
+            logger.error("Model is infeasible. Constraints cannot be satisfied simultaneously.")
+            logger.error("Possible causes:")
+            logger.error("  - Revenue neutrality constraint too restrictive")
+            logger.error("  - NS mutual exclusivity creates conflicts")
+            logger.error("  - Data quality issues in Excel file")
+        elif stage1_model.status == GRB.UNBOUNDED:
+            logger.error("Model is unbounded. Objective can be improved indefinitely.")
+        raise ValueError(f"Optimization failed with status {stage1_model.status}")
     
     # Store the optimal GDP value for use in Stage 2
     best_gdp = stage1_model.ObjVal
+    logger.debug(f"Stage 1 optimal GDP: {best_gdp * 100:.4f}%")
     
     # === Stage 2: Maximize revenue while maintaining optimal GDP ===
     # This stage breaks ties when multiple solutions achieve the same GDP
     if verbose:
-        print("Running optimization (Stage 2: Maximize Revenue)...")
+        logger.info("Running optimization (Stage 2: Maximize Revenue)...")
     
-    stage2_model = Model("Stage2_MaximizeRevenue")
+    try:
+        stage2_model = Model("Stage2_MaximizeRevenue")
+    except GurobiError as e:
+        logger.error(f"Failed to create Stage 2 model: {e}")
+        raise
     if SUPPRESS_GUROBI_OUTPUT:
         stage2_model.setParam('OutputFlag', 0)
     
@@ -155,7 +189,20 @@ def optimize_policy_selection(
         quicksum(revenue[i] * x2[i] for i in range(n)),
         GRB.MAXIMIZE
     )
-    stage2_model.optimize()
+    
+    try:
+        stage2_model.optimize()
+    except GurobiError as e:
+        logger.error(f"Stage 2 optimization failed: {e}")
+        raise
+    
+    # Check optimization status
+    if stage2_model.status != GRB.OPTIMAL:
+        logger.error(f"Stage 2 did not find optimal solution. Status: {stage2_model.status}")
+        raise ValueError(
+            f"Stage 2 optimization failed with status {stage2_model.status}. "
+            "This should not happen if Stage 1 succeeded."
+        )
     
     # Extract solution: policies where x2[i] > 0.5 are selected
     # Using 0.5 threshold handles numerical precision issues in binary variables
@@ -170,20 +217,36 @@ def optimize_policy_selection(
 
 def main() -> None:
     """Main execution function."""
-    # Load and clean data
-    df_clean, ns_groups = load_policy_data()
-    
-    # Run optimization
-    result_df, gdp_impact, revenue_impact = optimize_policy_selection(
-        df_clean, ns_groups
-    )
-    
-    # Display results
-    display_results(result_df, gdp_impact, revenue_impact)
-    
-    # Save to CSV
-    result_df.to_csv("max_gdp.csv", index=False)
-    print("✓ Results saved to 'max_gdp.csv'\n")
+    try:
+        # Load and clean data
+        logger.info("Starting GDP maximization optimization...")
+        df_clean, ns_groups = load_policy_data()
+        
+        # Run optimization
+        result_df, gdp_impact, revenue_impact = optimize_policy_selection(
+            df_clean, ns_groups
+        )
+        
+        # Display results
+        display_results(result_df, gdp_impact, revenue_impact)
+        
+        # Save to CSV
+        output_file = "max_gdp.csv"
+        result_df.to_csv(output_file, index=False)
+        logger.info(f"✓ Results saved to '{output_file}'")
+        
+    except ValidationError as e:
+        logger.error(f"Validation error: {e}")
+        sys.exit(1)
+    except GurobiError as e:
+        logger.error(f"Gurobi optimization error: {e}")
+        logger.error("Please check your Gurobi license and model formulation.")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        import traceback
+        logger.debug(traceback.format_exc())
+        sys.exit(1)
 
 
 if __name__ == "__main__":

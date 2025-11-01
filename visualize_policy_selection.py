@@ -53,31 +53,45 @@ import seaborn as sns
 from pathlib import Path
 import numpy as np
 
+from config import SPENDING_RANGE, COLUMNS
+from logger import get_logger, LogLevel
+
+# Initialize logger
+logger = get_logger(__name__, level=LogLevel.INFO)
+
 # Configuration
 output_dir = Path('outputs/defense')
-output_dir.mkdir(parents=True, exist_ok=True)
+try:
+    output_dir.mkdir(parents=True, exist_ok=True)
+except Exception as e:
+    logger.error(f"Cannot create output directory: {e}")
+    raise
 
-# Defense spending levels (in billions)
-spending_levels = list(range(-4000, 6500, 500))
+# Defense spending levels from config
+spending_levels = list(range(
+    SPENDING_RANGE["min"],
+    SPENDING_RANGE["max"],
+    SPENDING_RANGE["step"]
+))
 
 def load_policy_data():
     """Load policy selection data from all defense spending CSV files."""
     policy_data = {}
     
-    print("Loading policy selection data...")
+    logger.info(f"Loading policy selection data for {len(spending_levels)} spending levels...")
     for level in spending_levels:
         file_path = output_dir / f'max_gdp_defense{level}.csv'
         try:
             df = pd.read_csv(file_path)
             # All policies in the CSV are selected policies (the file only contains selected policies)
-            selected = df['Option'].tolist()
+            selected = df[COLUMNS["option"]].tolist()
             policy_data[level] = {
                 'df': df,
                 'selected': selected
             }
-            print(f"  [OK] Loaded {file_path.name}: {len(selected)} policies selected")
+            logger.info(f"  ✓ Loaded {file_path.name}: {len(selected)} policies selected")
         except FileNotFoundError:
-            print(f"  [MISSING] {file_path.name}")
+            logger.warning(f"  ⚠ Missing {file_path.name}")
             policy_data[level] = {'df': None, 'selected': []}
     
     return policy_data
@@ -104,7 +118,7 @@ def extract_policy_number(policy_name):
 
 def create_heatmap(policy_data):
     """Create a heatmap showing policy selections across defense spending levels (excluding NS policies)."""
-    print("\nCreating policy selection heatmap (excluding National Security policies)...")
+    logger.info("Creating policy selection heatmap (excluding National Security policies)...")
     
     # Get all unique policies across all spending levels, excluding NS policies
     all_policies = set()
@@ -168,14 +182,14 @@ def create_heatmap(policy_data):
     # Save
     output_file = output_dir / 'policy_selection_heatmap.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"[OK] Heatmap saved to '{output_file}'")
+    logger.info(f"✓ Heatmap saved to '{output_file}'")
     plt.close()
     
     return all_policies, matrix
 
 def create_frequency_chart(all_policies, matrix):
     """Create a bar chart showing how often each policy is selected."""
-    print("\nCreating policy frequency chart...")
+    logger.info("Creating policy frequency chart...")
     
     # Calculate frequency for each policy (sum across spending levels)
     frequencies = matrix.sum(axis=1)
@@ -266,14 +280,14 @@ def create_frequency_chart(all_policies, matrix):
     # Save
     output_file = output_dir / 'policy_frequency_analysis.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"[OK] Frequency chart saved to '{output_file}'")
+    logger.info(f"✓ Frequency chart saved to '{output_file}'")
     plt.close()
     
     return freq_df
 
 def create_defense_substitution_chart(policy_data):
     """Create a heatmap showing NS (National Security) policy substitutions."""
-    print("\nCreating defense policy substitution heatmap...")
+    logger.info("Creating defense policy substitution heatmap...")
     
     # Extract NS policies across spending levels
     ns_selections = {}
@@ -289,7 +303,7 @@ def create_defense_substitution_chart(policy_data):
     all_ns_policies = sorted(all_ns_policies, key=extract_policy_number)
     
     if not all_ns_policies:
-        print("  [WARNING] No NS policies found in selections")
+        logger.warning("No NS policies found in selections")
         return
     
     # Create matrix for NS policies only
@@ -334,62 +348,56 @@ def create_defense_substitution_chart(policy_data):
     # Save
     output_file = output_dir / 'defense_policy_substitution.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"[OK] Defense substitution heatmap saved to '{output_file}'")
+    logger.info(f"✓ Defense substitution heatmap saved to '{output_file}'")
     plt.close()
     
     # Print summary
     ns_counts = [len(ns_selections[level]) for level in spending_levels]
-    print("\nDefense Policy Summary:")
-    print(f"  Total unique NS policies: {len(all_ns_policies)}")
-    print(f"  Max NS policies selected: {max(ns_counts)} (at ${spending_levels[ns_counts.index(max(ns_counts))]:+,}B)")
-    print(f"  Min NS policies selected: {min(ns_counts)} (at ${spending_levels[ns_counts.index(min(ns_counts))]:+,}B)")
+    logger.info("Defense Policy Summary:")
+    logger.info(f"  Total unique NS policies: {len(all_ns_policies)}")
+    logger.info(f"  Max NS policies selected: {max(ns_counts)} (at ${spending_levels[ns_counts.index(max(ns_counts))]:+,}B)")
+    logger.info(f"  Min NS policies selected: {min(ns_counts)} (at ${spending_levels[ns_counts.index(min(ns_counts))]:+,}B)")
 
 def print_policy_insights(freq_df, all_policies, matrix):
     """Print key insights about policy selections."""
-    print("\n" + "="*70)
-    print("POLICY SELECTION INSIGHTS")
-    print("="*70)
+    logger.section("POLICY SELECTION INSIGHTS")
     
     # Always selected policies
     always_selected = freq_df[freq_df['Frequency'] == len(spending_levels)]['Policy'].tolist()
-    print(f"\n1. ALWAYS SELECTED ({len(always_selected)} policies):")
+    logger.info(f"\n1. ALWAYS SELECTED ({len(always_selected)} policies):")
     for policy in always_selected[:10]:  # Show first 10
-        print(f"   - {policy}")
+        logger.info(f"   - {policy}")
     if len(always_selected) > 10:
-        print(f"   ... and {len(always_selected) - 10} more")
+        logger.info(f"   ... and {len(always_selected) - 10} more")
     
     # Never selected policies
     never_selected = freq_df[freq_df['Frequency'] == 0]['Policy'].tolist()
-    print(f"\n2. NEVER SELECTED ({len(never_selected)} policies):")
+    logger.info(f"\n2. NEVER SELECTED ({len(never_selected)} policies):")
     for policy in never_selected[:10]:  # Show first 10
-        print(f"   - {policy}")
+        logger.info(f"   - {policy}")
     if len(never_selected) > 10:
-        print(f"   ... and {len(never_selected) - 10} more")
+        logger.info(f"   ... and {len(never_selected) - 10} more")
     
     # Sometimes selected policies (most variable)
     mid_freq = freq_df[(freq_df['Frequency'] > 0) & (freq_df['Frequency'] < len(spending_levels))]
     mid_freq = mid_freq.sort_values('Frequency', ascending=False)
-    print(f"\n3. SOMETIMES SELECTED ({len(mid_freq)} policies):")
-    print("   Top 10 by selection frequency:")
+    logger.info(f"\n3. SOMETIMES SELECTED ({len(mid_freq)} policies):")
+    logger.info("   Top 10 by selection frequency:")
     for i, row in mid_freq.head(10).iterrows():
-        print(f"   - {row['Policy'][:70]}... ({int(row['Frequency'])}/{len(spending_levels)} times)")
+        logger.info(f"   - {row['Policy'][:70]}... ({int(row['Frequency'])}/{len(spending_levels)} times)")
     
     # Category breakdown
-    print("\n4. SELECTION RATE BY CATEGORY:")
+    logger.info("\n4. SELECTION RATE BY CATEGORY:")
     category_stats = freq_df.groupby(freq_df['Policy'].apply(
         lambda p: 'NS' if p.startswith('NS') else ('S' if p.startswith('S') else 'Tax')
     ))['Percentage'].agg(['mean', 'count'])
     
     for category, stats in category_stats.iterrows():
-        print(f"   {category:20s}: {stats['mean']:5.1f}% avg selection rate ({int(stats['count'])} policies)")
-    
-    print("\n" + "="*70)
+        logger.info(f"   {category:20s}: {stats['mean']:5.1f}% avg selection rate ({int(stats['count'])} policies)")
 
 def main():
     """Main execution function."""
-    print("="*70)
-    print("POLICY SELECTION ANALYSIS")
-    print("="*70)
+    logger.section("POLICY SELECTION ANALYSIS")
     
     # Load data
     policy_data = load_policy_data()
@@ -397,11 +405,11 @@ def main():
     # Create policy selection heatmap (excluding NS policies)
     all_policies, matrix = create_heatmap(policy_data)
     
-    print("\n" + "="*70)
-    print("Visualization complete!")
-    print(f"Check '{output_dir}' for output file:")
-    print("  - policy_selection_heatmap.png")
-    print("="*70)
+    logger.info("\n" + "="*70)
+    logger.info("Visualization complete!")
+    logger.info(f"Check '{output_dir}' for output file:")
+    logger.info("  - policy_selection_heatmap.png")
+    logger.info("="*70)
 
 if __name__ == '__main__':
     main()

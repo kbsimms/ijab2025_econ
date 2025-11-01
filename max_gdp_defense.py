@@ -68,40 +68,32 @@ import sys
 from typing import Tuple
 from pathlib import Path
 import pandas as pd
-from gurobipy import Model, GRB, quicksum
+from gurobipy import Model, GRB, quicksum, GurobiError
 
 from config import (
     COLUMNS,
     SUPPRESS_GUROBI_OUTPUT,
     EPSILON,
     DISTRIBUTIONAL_TOLERANCE,
-    DEFENSE_SPENDING
+    DEFENSE_SPENDING,
+    SPENDING_RANGE,
+    EXCLUDED_POLICIES
 )
 from utils import load_policy_data, get_ns_strict_indices, display_results
+from logger import get_logger, LogLevel
+from validation import (
+    validate_optimization_inputs,
+    validate_spending_level,
+    validate_output_directory,
+    ValidationError
+)
+from optimizer_utils import (
+    get_policy_indices_by_codes,
+    add_all_constraints
+)
 
-
-def get_policy_indices_by_codes(df: pd.DataFrame, policy_codes: list) -> list:
-    """
-    Get positional indices for policies by their option codes.
-    
-    Args:
-        df: DataFrame containing policy data
-        policy_codes: List of policy codes (e.g., ['11', '36', '68'])
-        
-    Returns:
-        List of positional indices for matching policies
-    """
-    indices = []
-    for code in policy_codes:
-        # Match policies that start with the code followed by ':'
-        # This handles both numeric codes like "11:" and alphanumeric like "S15:"
-        matching = df[df[COLUMNS["option"]].str.match(f"^{code}:", na=False)]
-        if len(matching) > 0:
-            # Get positional index
-            label_idx = matching.index[0]
-            pos_idx = df.index.get_loc(label_idx)
-            indices.append(pos_idx)
-    return indices
+# Initialize logger
+logger = get_logger(__name__, level=LogLevel.INFO)
 
 
 def define_policy_groups(df: pd.DataFrame) -> dict:
@@ -250,17 +242,30 @@ def optimize_policy_selection(
     p80_arr = df[COLUMNS["p80_100"]].values
     p99_arr = df[COLUMNS["p99"]].values
     
+    # Validate inputs before optimization
+    try:
+        validate_optimization_inputs(df, ns_groups, ns_strict_indices, min_ns_spending)
+    except ValidationError as e:
+        if verbose:
+            logger.error(f"Input validation failed: {e}")
+        raise
+    
     # === Stage 1: Maximize GDP ===
     if verbose:
-        print(f"Running optimization (Stage 1: Maximize GDP)...")
-        print(f"  NS spending requirement: ${min_ns_spending:,}B")
+        logger.info(f"Running optimization (Stage 1: Maximize GDP)...")
+        logger.info(f"  NS spending requirement: ${min_ns_spending:,}B")
         
         # Get policy groups for display
         policy_groups_display = define_policy_groups(df)
         if policy_groups_display:
-            print(f"  Policy mutual exclusivity groups: {len(policy_groups_display)}")
+            logger.info(f"  Policy mutual exclusivity groups: {len(policy_groups_display)}")
     
-    stage1_model = Model("Stage1_MaximizeGDP")
+    try:
+        stage1_model = Model("Stage1_MaximizeGDP")
+    except GurobiError as e:
+        if verbose:
+            logger.error(f"Failed to create Gurobi model: {e}")
+        raise
     if SUPPRESS_GUROBI_OUTPUT:
         stage1_model.setParam("OutputFlag", 0)
     
@@ -274,122 +279,57 @@ def optimize_policy_selection(
     )
     
     # === Constraints ===
-    
-    # Get policy group indices for mutual exclusivity constraints
+    # Use centralized constraint functions to eliminate code duplication
     policy_groups = define_policy_groups(df)
     
-    # Excluded policies: Force these policies to never be selected
-    excluded_policies = ['37', '43', '49', '68']
-    excluded_indices = get_policy_indices_by_codes(df, excluded_policies)
-    for idx in excluded_indices:
-        stage1_model.addConstr(x[idx] == 0, name=f"Exclude_policy_{idx}")
-    
-    if verbose and len(excluded_indices) > 0:
-        print(f"  Excluded policies: {len(excluded_indices)} policies forced to 0")
-    
-    # Fiscal constraint: Total dynamic revenue must be non-negative
-    # Ensures the policy package doesn't increase the deficit
-    stage1_model.addConstr(
-        quicksum(x[i] * revenue[i] for i in indices) >= 0,
-        name="RevenueNeutrality"
-    )
-    
-    # Economic constraints: Ensure positive economic impacts
-    # Capital stock change must be non-negative
-    stage1_model.addConstr(
-        quicksum(x[i] * capital[i] for i in indices) >= 0,
-        name="CapitalStock"
-    )
-    # Job creation must be non-negative
-    stage1_model.addConstr(
-        quicksum(x[i] * jobs[i] for i in indices) >= 0,
-        name="Jobs"
-    )
-    # Wage rate change must be non-negative
-    stage1_model.addConstr(
-        quicksum(x[i] * wage[i] for i in indices) >= 0,
-        name="WageRate"
-    )
-    
-    # Equity constraints: Ensure progressive distribution
-    # Calculate total after-tax income change for each percentile group
-    p20 = quicksum(x[i] * p20_arr[i] for i in indices)
-    p40 = quicksum(x[i] * p40_arr[i] for i in indices)
-    p80 = quicksum(x[i] * p80_arr[i] for i in indices)
-    p99 = quicksum(x[i] * p99_arr[i] for i in indices)
-    
-    # Constraint 1: Lower/middle income groups must individually benefit at least as much as upper groups
-    # P20 >= P99 (bottom 20% benefits at least as much as top 1%)
-    stage1_model.addConstr(p20 - p99 >= EPSILON, name="P20_ge_P99")
-    # P40-60 >= P99 (middle class benefits at least as much as top 1%)
-    stage1_model.addConstr(p40 - p99 >= EPSILON, name="P40_ge_P99")
-    # P20 >= P80-100 (bottom 20% benefits at least as much as top 20%)
-    stage1_model.addConstr(p20 - p80 >= EPSILON, name="P20_ge_P80")
-    # P40-60 >= P80-100 (middle class benefits at least as much as top 20%)
-    stage1_model.addConstr(p40 - p80 >= EPSILON, name="P40_ge_P80")
-    
-    # Constraint 2: Non-negative after-tax income for all groups (everyone must be better off)
-    stage1_model.addConstr(p20 >= 0, name="P20_NonNegative")
-    stage1_model.addConstr(p40 >= 0, name="P40_NonNegative")
-    stage1_model.addConstr(p80 >= 0, name="P80_NonNegative")
-    stage1_model.addConstr(p99 >= 0, name="P99_NonNegative")
-    
-    # Policy mutual exclusivity constraints
-    # For each policy group, at most one option can be selected
-    for group_name, idxs in policy_groups.items():
-        if len(idxs) > 1:  # Only add constraint if group has multiple options
-            stage1_model.addConstr(
-                quicksum(x[i] for i in idxs) <= 1,
-                name=f"Policy_{group_name}_mutual_exclusivity"
-            )
-    
-    # Special constraint: If policy 68 (Replace CIT with VAT) is selected,
-    # then policy 37 (Corporate Surtax) cannot be selected
-    idx_68 = get_policy_indices_by_codes(df, ['68'])
-    idx_37 = get_policy_indices_by_codes(df, ['37'])
-    if len(idx_68) > 0 and len(idx_37) > 0:
-        # If x[68] = 1, then x[37] must be 0
-        # Equivalent to: x[68] + x[37] <= 1
-        stage1_model.addConstr(
-            x[idx_68[0]] + x[idx_37[0]] <= 1,
-            name="Policy_68_excludes_37"
-        )
-    
-    # NS mutual exclusivity constraints
-    # For each NS group (e.g., NS1 with options NS1A, NS1B, NS1C),
-    # at most one option can be selected
-    for group, idxs in ns_groups.items():
-        stage1_model.addConstr(
-            quicksum(x[i] for i in idxs) <= 1,
-            name=f"NS_{group}_mutual_exclusivity"
-        )
-    
-    # NS spending constraint
-    # Total spending (negative revenue) from NS1-NS7 policies must equal exactly min_ns_spending
-    # Note: Revenue is negative for spending, so we use == -min_ns_spending
-    stage1_model.addConstr(
-        quicksum(x[i] * revenue[i] for i in ns_strict_indices) == -min_ns_spending,
-        name="ExactNSSpending"
+    # Add all standard constraints using utility function
+    # This replaces ~100 lines of duplicate constraint code
+    add_all_constraints(
+        stage1_model, x, df, ns_groups, policy_groups,
+        ns_strict_indices, min_ns_spending,
+        logger=logger if verbose else None
     )
     
     # Solve Stage 1
-    stage1_model.optimize()
+    try:
+        stage1_model.optimize()
+    except GurobiError as e:
+        if verbose:
+            logger.error(f"Stage 1 optimization failed: {e}")
+        raise
     
     # Check if model found a feasible solution
     if stage1_model.status != GRB.OPTIMAL:
+        error_msg = f"Stage 1 optimization failed with status {stage1_model.status}"
+        if verbose:
+            logger.error(error_msg)
+            if stage1_model.status == GRB.INFEASIBLE:
+                logger.error("Model is infeasible. Possible causes:")
+                logger.error(f"  - NS spending requirement too restrictive: ${min_ns_spending:,}B")
+                logger.error("  - Equity constraints cannot be satisfied")
+                logger.error("  - Policy exclusions create conflicts")
+            elif stage1_model.status == GRB.UNBOUNDED:
+                logger.error("Model is unbounded")
         raise ValueError(
-            f"Stage 1 optimization failed with status {stage1_model.status}. "
+            f"{error_msg}. "
             f"The model may be infeasible - try reducing the NS spending requirement. "
             f"Current requirement: ${min_ns_spending:,}B"
         )
     
     gdp_star = stage1_model.ObjVal
+    if verbose:
+        logger.debug(f"Stage 1 optimal GDP: {gdp_star * 100:.4f}%")
     
     # === Stage 2: Maximize Revenue under optimal GDP ===
     if verbose:
-        print("Running optimization (Stage 2: Maximize Revenue)...")
+        logger.info("Running optimization (Stage 2: Maximize Revenue)...")
     
-    stage2_model = Model("Stage2_MaximizeRevenue")
+    try:
+        stage2_model = Model("Stage2_MaximizeRevenue")
+    except GurobiError as e:
+        if verbose:
+            logger.error(f"Failed to create Stage 2 model: {e}")
+        raise
     if SUPPRESS_GUROBI_OUTPUT:
         stage2_model.setParam("OutputFlag", 0)
     
@@ -402,70 +342,11 @@ def optimize_policy_selection(
         GRB.MAXIMIZE
     )
     
-    # Excluded policies (same as Stage 1)
-    for idx in excluded_indices:
-        stage2_model.addConstr(x2[idx] == 0, name=f"Exclude_policy_{idx}")
-    
-    # Constraints (same as Stage 1, but with x2 variables)
-    stage2_model.addConstr(
-        quicksum(x2[i] * revenue[i] for i in indices) >= 0,
-        name="RevenueNeutrality"
-    )
-    stage2_model.addConstr(
-        quicksum(x2[i] * capital[i] for i in indices) >= 0,
-        name="CapitalStock"
-    )
-    stage2_model.addConstr(
-        quicksum(x2[i] * jobs[i] for i in indices) >= 0,
-        name="Jobs"
-    )
-    stage2_model.addConstr(
-        quicksum(x2[i] * wage[i] for i in indices) >= 0,
-        name="WageRate"
-    )
-    
-    # Equity constraints (same as Stage 1)
-    p20 = quicksum(x2[i] * p20_arr[i] for i in indices)
-    p40 = quicksum(x2[i] * p40_arr[i] for i in indices)
-    p80 = quicksum(x2[i] * p80_arr[i] for i in indices)
-    p99 = quicksum(x2[i] * p99_arr[i] for i in indices)
-    
-    stage2_model.addConstr(p20 - p99 >= EPSILON, name="P20_ge_P99")
-    stage2_model.addConstr(p40 - p99 >= EPSILON, name="P40_ge_P99")
-    stage2_model.addConstr(p20 - p80 >= EPSILON, name="P20_ge_P80")
-    stage2_model.addConstr(p40 - p80 >= EPSILON, name="P40_ge_P80")
-    
-    # Non-negative after-tax income for all groups (everyone must be better off)
-    stage2_model.addConstr(p20 >= 0, name="P20_NonNegative")
-    stage2_model.addConstr(p40 >= 0, name="P40_NonNegative")
-    stage2_model.addConstr(p80 >= 0, name="P80_NonNegative")
-    stage2_model.addConstr(p99 >= 0, name="P99_NonNegative")
-    
-    # Policy mutual exclusivity constraints (same as Stage 1)
-    for group_name, idxs in policy_groups.items():
-        if len(idxs) > 1:
-            stage2_model.addConstr(
-                quicksum(x2[i] for i in idxs) <= 1,
-                name=f"Policy_{group_name}_mutual_exclusivity"
-            )
-    
-    # Special constraint: If policy 68 is selected, policy 37 cannot be selected
-    if len(idx_68) > 0 and len(idx_37) > 0:
-        stage2_model.addConstr(
-            x2[idx_68[0]] + x2[idx_37[0]] <= 1,
-            name="Policy_68_excludes_37"
-        )
-    
-    # NS constraints (same as Stage 1)
-    for group, idxs in ns_groups.items():
-        stage2_model.addConstr(
-            quicksum(x2[i] for i in idxs) <= 1,
-            name=f"NS_{group}_mutual_exclusivity"
-        )
-    
-    stage2_model.addConstr(
-        quicksum(x2[i] * revenue[i] for i in ns_strict_indices) == -min_ns_spending,
-        name="ExactNSSpending"
+    # Add all constraints (same as Stage 1, but with x2 variables)
+    add_all_constraints(
+        stage2_model, x2, df, ns_groups, policy_groups,
+        ns_strict_indices, min_ns_spending,
+        logger=logger if verbose else None
     )
     
     # Additional constraint: Fix GDP to the optimal value from Stage 1
@@ -476,12 +357,20 @@ def optimize_policy_selection(
     )
     
     # Solve Stage 2
-    stage2_model.optimize()
+    try:
+        stage2_model.optimize()
+    except GurobiError as e:
+        if verbose:
+            logger.error(f"Stage 2 optimization failed: {e}")
+        raise
     
     # Check if model found a feasible solution
     if stage2_model.status != GRB.OPTIMAL:
+        error_msg = f"Stage 2 optimization failed with status {stage2_model.status}"
+        if verbose:
+            logger.error(error_msg)
         raise ValueError(
-            f"Stage 2 optimization failed with status {stage2_model.status}. "
+            f"{error_msg}. "
             "This should not happen if Stage 1 succeeded."
         )
     
@@ -507,11 +396,22 @@ def optimize_policy_selection(
 
 
 def run_single_optimization(spending_level: int) -> Tuple[pd.DataFrame, dict]:
-    """Run optimization for a single spending level.
+    """
+    Run optimization for a single spending level.
+    
+    Args:
+        spending_level: Defense spending requirement in billions
     
     Returns:
         tuple: (result_df, kpi_dict) for aggregation in run_full_range
+        
+    Raises:
+        ValidationError: If inputs are invalid
+        GurobiError: If optimization fails
     """
+    # Validate spending level
+    validate_spending_level(spending_level)
+    
     # Load and clean data
     df, ns_groups = load_policy_data()
     ns_strict_indices = get_ns_strict_indices(df)
@@ -526,8 +426,12 @@ def run_single_optimization(spending_level: int) -> Tuple[pd.DataFrame, dict]:
     
     # Save to CSV with spending level in filename
     output_file = f"outputs/defense/max_gdp_defense{spending_level}.csv"
-    result_df.to_csv(output_file, index=False)
-    print(f"Results saved to '{output_file}'\n")
+    try:
+        result_df.to_csv(output_file, index=False)
+        logger.info(f"✓ Results saved to '{output_file}'")
+    except Exception as e:
+        logger.error(f"Failed to save results: {e}")
+        raise
     
     return result_df, kpi_dict
 
@@ -535,13 +439,24 @@ def run_single_optimization(spending_level: int) -> Tuple[pd.DataFrame, dict]:
 def run_full_range() -> None:
     """Run optimization for the full range of defense spending levels and generate visualization."""
     # Ensure output directory exists
-    Path("outputs/defense").mkdir(parents=True, exist_ok=True)
+    output_dir = Path("outputs/defense")
+    try:
+        validate_output_directory(output_dir)
+    except ValidationError as e:
+        logger.error(f"Cannot create output directory: {e}")
+        raise
     
-    # Defense spending levels to generate (-4000 to 6000 in increments of 500)
-    spending_levels = list(range(-4000, 6500, 500))
+    # Defense spending levels from config
+    spending_levels = list(range(
+        SPENDING_RANGE["min"],
+        SPENDING_RANGE["max"],
+        SPENDING_RANGE["step"]
+    ))
     
-    print("Generating optimization results for full defense spending range...")
-    print("=" * 70)
+    logger.info("Generating optimization results for full defense spending range...")
+    logger.info(f"Range: ${SPENDING_RANGE['min']:,}B to ${SPENDING_RANGE['max']-SPENDING_RANGE['step']:,}B")
+    logger.info(f"Increment: ${SPENDING_RANGE['step']:,}B")
+    logger.info("=" * 70)
     
     # Load policy data once to get all policy names
     df, ns_groups = load_policy_data()
@@ -556,13 +471,16 @@ def run_full_range() -> None:
     failed_runs = []
     
     for level in spending_levels:
-        print(f"\nRunning optimization for ${level:,}B defense spending...")
+        logger.info(f"\nRunning optimization for ${level:,}B defense spending...")
         try:
+            # Validate spending level
+            validate_spending_level(level)
+            
             # Run optimization directly (not via subprocess)
             result_df, kpi_dict = run_single_optimization(level)
             
             successful_runs.append(level)
-            print(f"[OK] Successfully generated max_gdp_defense{level}.csv")
+            logger.info(f"✓ Successfully generated max_gdp_defense{level}.csv")
             
             # Track policy decisions
             selected_policies = set(result_df[COLUMNS["option"]].tolist())
@@ -574,40 +492,48 @@ def run_full_range() -> None:
             # Track KPI values
             kpi_summary[level] = kpi_dict
             
+        except ValidationError as e:
+            failed_runs.append(level)
+            logger.error(f"✗ Validation failed for ${level:,}B: {e}")
+        except GurobiError as e:
+            failed_runs.append(level)
+            logger.error(f"✗ Optimization failed for ${level:,}B: {e}")
         except Exception as e:
             failed_runs.append(level)
-            print(f"[FAILED] Failed to generate results for ${level:,}B")
-            print(f"  Error: {str(e)}")
+            logger.error(f"✗ Unexpected error for ${level:,}B: {e}")
     
-    print("\n" + "=" * 70)
-    print(f"Completed {len(successful_runs)}/{len(spending_levels)} optimization runs")
+    logger.info("\n" + "=" * 70)
+    logger.info(f"Completed {len(successful_runs)}/{len(spending_levels)} optimization runs")
     
     if failed_runs:
-        print(f"\nFailed runs: {failed_runs}")
+        logger.warning(f"Failed runs: {failed_runs}")
     
     # Generate summary outputs if we have results
     if successful_runs:
-        print("\n" + "=" * 70)
-        print("Generating summary outputs...")
+        logger.info("\n" + "=" * 70)
+        logger.info("Generating summary outputs...")
         
-        # Create policy decision matrix (policies as rows, spending levels as columns)
-        policy_matrix_df = pd.DataFrame(policy_decisions)
-        policy_matrix_df.index.name = 'Policy'
-        policy_matrix_file = "outputs/defense/policy_decisions_matrix.csv"
-        policy_matrix_df.to_csv(policy_matrix_file)
-        print(f"[OK] Policy decision matrix saved to '{policy_matrix_file}'")
-        print(f"     Format: Policies as rows, defense spending levels as columns")
-        
-        # Create KPI summary matrix
-        kpi_matrix_df = pd.DataFrame(kpi_summary).T
-        kpi_matrix_df.index.name = 'Defense_Spending_B'
-        kpi_summary_file = "outputs/defense/economic_effects_summary.csv"
-        kpi_matrix_df.to_csv(kpi_summary_file)
-        print(f"[OK] Economic effects summary saved to '{kpi_summary_file}'")
+        try:
+            # Create policy decision matrix (policies as rows, spending levels as columns)
+            policy_matrix_df = pd.DataFrame(policy_decisions)
+            policy_matrix_df.index.name = 'Policy'
+            policy_matrix_file = "outputs/defense/policy_decisions_matrix.csv"
+            policy_matrix_df.to_csv(policy_matrix_file)
+            logger.info(f"✓ Policy decision matrix saved to '{policy_matrix_file}'")
+            logger.info(f"  Format: Policies as rows, defense spending levels as columns")
+            
+            # Create KPI summary matrix
+            kpi_matrix_df = pd.DataFrame(kpi_summary).T
+            kpi_matrix_df.index.name = 'Defense_Spending_B'
+            kpi_summary_file = "outputs/defense/economic_effects_summary.csv"
+            kpi_matrix_df.to_csv(kpi_summary_file)
+            logger.info(f"✓ Economic effects summary saved to '{kpi_summary_file}'")
+        except Exception as e:
+            logger.error(f"Failed to save summary files: {e}")
         
         # Run visualization if we have results
-        print("\n" + "=" * 70)
-        print("Generating visualization...")
+        logger.info("\n" + "=" * 70)
+        logger.info("Generating visualization...")
         try:
             result = subprocess.run(
                 [sys.executable, "visualize_defense_spending.py"],
@@ -615,17 +541,17 @@ def run_full_range() -> None:
                 text=True,
                 check=True
             )
-            print(result.stdout)
-            print("[OK] Visualization complete!")
+            print(result.stdout)  # Print visualization output directly
+            logger.info("✓ Visualization complete!")
         except subprocess.CalledProcessError as e:
-            print("[FAILED] Visualization failed:")
-            print(e.stderr)
+            logger.error("✗ Visualization failed:")
+            logger.error(e.stderr)
         except FileNotFoundError:
-            print("[WARNING] visualize_defense_spending.py not found, skipping visualization")
+            logger.warning("⚠ visualize_defense_spending.py not found, skipping visualization")
 
 
 def main() -> None:
-    """Main execution function."""
+    """Main execution function with comprehensive error handling."""
     # Parse command line arguments
     parser = argparse.ArgumentParser(
         description='Optimize policy selection with national security and equity constraints.',
@@ -639,17 +565,46 @@ def main() -> None:
     parser.add_argument(
         '--all',
         action='store_true',
-        help='Explicitly run full range of spending levels (-4000 to 6000) and generate visualization'
+        help='Explicitly run full range of spending levels and generate visualization'
+    )
+    parser.add_argument(
+        '--verbose',
+        action='store_true',
+        help='Enable debug-level logging'
     )
     args = parser.parse_args()
     
-    # Determine mode of operation
-    if args.spending is not None:
-        # Single optimization run (don't return values when called from command line)
-        run_single_optimization(args.spending)
-    else:
-        # Default: Run full range + visualization
-        run_full_range()
+    # Configure logging
+    if args.verbose:
+        from logger import set_global_level
+        set_global_level(LogLevel.DEBUG)
+    
+    try:
+        # Determine mode of operation
+        if args.spending is not None:
+            # Single optimization run
+            logger.info(f"Starting single optimization for ${args.spending:,}B defense spending")
+            run_single_optimization(args.spending)
+        else:
+            # Default: Run full range + visualization
+            logger.info("Starting full range optimization")
+            run_full_range()
+            
+    except ValidationError as e:
+        logger.error(f"Validation error: {e}")
+        sys.exit(1)
+    except GurobiError as e:
+        logger.error(f"Gurobi optimization error: {e}")
+        logger.error("Please check your Gurobi license and model formulation.")
+        sys.exit(1)
+    except KeyboardInterrupt:
+        logger.warning("Optimization interrupted by user")
+        sys.exit(130)
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        import traceback
+        logger.debug(traceback.format_exc())
+        sys.exit(1)
 
 
 if __name__ == "__main__":
