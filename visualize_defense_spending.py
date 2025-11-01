@@ -209,16 +209,6 @@ ax1.set_xlabel('Defense Spending Change ($B)', fontsize=11)
 ax1.set_ylabel('GDP Growth (%)', fontsize=11)
 ax1.grid(True, alpha=0.3)
 ax1.legend(fontsize=9)
-# Highlight maximum
-max_gdp_idx = np.argmax(gdp_pct)
-ax1.plot(metrics['spending'][max_gdp_idx], gdp_pct[max_gdp_idx], 'r*',
-         markersize=15, label='Maximum', zorder=5)
-ax1.annotate(f'Max: {gdp_pct[max_gdp_idx]:.2f}%\n@ ${metrics["spending"][max_gdp_idx]:,}B',
-             xy=(metrics['spending'][max_gdp_idx], gdp_pct[max_gdp_idx]),
-             xytext=(20, -20), textcoords='offset points',
-             fontsize=9, fontweight='bold',
-             bbox=dict(boxstyle='round,pad=0.5', facecolor='yellow', alpha=0.7),
-             arrowprops=dict(arrowstyle='->', color='red', lw=2))
 
 # Row 1, Col 2: Jobs Impact
 ax2 = axes[0, 1]
@@ -233,16 +223,6 @@ ax2.set_xlabel('Defense Spending Change ($B)', fontsize=11)
 ax2.set_ylabel('Jobs Created (Millions)', fontsize=11)
 ax2.grid(True, alpha=0.3)
 ax2.legend(fontsize=9)
-# Highlight maximum
-max_jobs_idx = np.argmax(jobs_millions)
-ax2.plot(metrics['spending'][max_jobs_idx], jobs_millions[max_jobs_idx], 'r*',
-         markersize=15, zorder=5)
-ax2.annotate(f'Max: {jobs_millions[max_jobs_idx]:.2f}M\n@ ${metrics["spending"][max_jobs_idx]:,}B',
-             xy=(metrics['spending'][max_jobs_idx], jobs_millions[max_jobs_idx]),
-             xytext=(20, -20), textcoords='offset points',
-             fontsize=9, fontweight='bold',
-             bbox=dict(boxstyle='round,pad=0.5', facecolor='yellow', alpha=0.7),
-             arrowprops=dict(arrowstyle='->', color='red', lw=2))
 
 # Row 1, Col 3: Revenue Impact
 ax3 = axes[0, 2]
@@ -264,16 +244,6 @@ ax3.set_xlabel('Defense Spending Change ($B)', fontsize=11)
 ax3.set_ylabel('Revenue Surplus ($B)', fontsize=11)
 ax3.grid(True, alpha=0.3)
 ax3.legend(fontsize=9, loc='best')
-# Highlight maximum surplus
-max_rev_idx = np.argmax(revenue_abs)
-ax3.plot(metrics['spending'][max_rev_idx], revenue_abs[max_rev_idx], 'r*',
-         markersize=15, zorder=5)
-ax3.annotate(f'Max: ${revenue_abs[max_rev_idx]:,.0f}B\n@ ${metrics["spending"][max_rev_idx]:,}B',
-             xy=(metrics['spending'][max_rev_idx], revenue_abs[max_rev_idx]),
-             xytext=(20, 20), textcoords='offset points',
-             fontsize=9, fontweight='bold',
-             bbox=dict(boxstyle='round,pad=0.5', facecolor='yellow', alpha=0.7),
-             arrowprops=dict(arrowstyle='->', color='red', lw=2))
 
 # Row 2, Col 1: Capital Stock
 ax4 = axes[1, 0]
@@ -288,16 +258,6 @@ ax4.set_xlabel('Defense Spending Change ($B)', fontsize=11)
 ax4.set_ylabel('Capital Stock Change (%)', fontsize=11)
 ax4.grid(True, alpha=0.3)
 ax4.legend(fontsize=9)
-# Highlight maximum
-max_cap_idx = np.argmax(capital_pct)
-ax4.plot(metrics['spending'][max_cap_idx], capital_pct[max_cap_idx], 'r*',
-         markersize=15, zorder=5)
-ax4.annotate(f'Max: {capital_pct[max_cap_idx]:.2f}%\n@ ${metrics["spending"][max_cap_idx]:,}B',
-             xy=(metrics['spending'][max_cap_idx], capital_pct[max_cap_idx]),
-             xytext=(20, -20), textcoords='offset points',
-             fontsize=9, fontweight='bold',
-             bbox=dict(boxstyle='round,pad=0.5', facecolor='yellow', alpha=0.7),
-             arrowprops=dict(arrowstyle='->', color='red', lw=2))
 
 # Row 2, Col 2: Wage Rate
 ax5 = axes[1, 1]
@@ -312,16 +272,6 @@ ax5.set_xlabel('Defense Spending Change ($B)', fontsize=11)
 ax5.set_ylabel('Wage Rate Change (%)', fontsize=11)
 ax5.grid(True, alpha=0.3)
 ax5.legend(fontsize=9)
-# Highlight maximum
-max_wage_idx = np.argmax(wage_pct)
-ax5.plot(metrics['spending'][max_wage_idx], wage_pct[max_wage_idx], 'r*',
-         markersize=15, zorder=5)
-ax5.annotate(f'Max: {wage_pct[max_wage_idx]:.2f}%\n@ ${metrics["spending"][max_wage_idx]:,}B',
-             xy=(metrics['spending'][max_wage_idx], wage_pct[max_wage_idx]),
-             xytext=(20, -20), textcoords='offset points',
-             fontsize=9, fontweight='bold',
-             bbox=dict(boxstyle='round,pad=0.5', facecolor='yellow', alpha=0.7),
-             arrowprops=dict(arrowstyle='->', color='red', lw=2))
 
 # Row 2, Col 3: Equity Impact (P20 vs P99)
 ax6 = axes[1, 2]
@@ -343,15 +293,6 @@ ax6.legend(fontsize=9, loc='best')
 ax6.fill_between(metrics['spending'], p20_pct, p99_pct,
                   where=[p20 >= p99 for p20, p99 in zip(p20_pct, p99_pct)],
                   alpha=0.2, color='green', label='Progressive')
-# Annotate maximum equity gap
-equity_gap = [p20 - p99 for p20, p99 in zip(p20_pct, p99_pct)]
-max_gap_idx = np.argmax(equity_gap)
-ax6.annotate(f'Max Progressive:\n@ ${metrics["spending"][max_gap_idx]:,}B',
-             xy=(metrics['spending'][max_gap_idx], p20_pct[max_gap_idx]),
-             xytext=(20, 10), textcoords='offset points',
-             fontsize=8, fontweight='bold',
-             bbox=dict(boxstyle='round,pad=0.5', facecolor='lightgreen', alpha=0.7),
-             arrowprops=dict(arrowstyle='->', color='green', lw=1.5))
 
 plt.tight_layout()
 output_file = output_dir / 'defense_spending_analysis.png'
