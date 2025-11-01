@@ -6,19 +6,25 @@ This script maximizes GDP growth subject to:
 - Economic constraints: Non-negative capital stock, jobs, and wage rate
 - Equity constraints: Progressive distribution favoring lower/middle income groups
 - Income constraints: All income groups must have non-negative after-tax income effects
+- Policy exclusions: Certain policies are prohibited from selection
 - Policy mutual exclusivity: Competing policies cannot both be selected
 - National security constraints: Minimum spending requirement, mutual exclusivity
 
 Key Features:
 1. Equity Constraints: Ensures lower and middle income groups (P20, P40-60) benefit
    at least as much as upper income groups (P80-100, P99)
-2. Policy Mutual Exclusivity: Ensures incompatible policies are not selected together
+2. Policy Exclusions: Forces specific policies to never be selected (no new taxes)
+   - Policy 37: Corporate Surtax of 5%
+   - Policy 43: Enact a 5% VAT
+   - Policy 49: Reinstate the Cadillac Tax
+   - Policy 68: Replace CIT with 5% VAT
+3. Policy Mutual Exclusivity: Ensures incompatible policies are not selected together
    - 15 policy groups (corporate tax, estate tax, individual tax structure, etc.)
    - Special constraints (e.g., VAT replacement excludes corporate surtax)
-3. National Security (NS) Constraints:
+4. National Security (NS) Constraints:
    - NS1-NS7 groups (A/B/C options): Only one option per group can be selected
    - Configurable minimum spending requirement on NS1-NS7 selections
-4. Two-stage optimization to find best GDP with tiebreaking on revenue
+5. Two-stage optimization to find best GDP with tiebreaking on revenue
 
 Usage:
     python max_gdp_defense.py                    # Default: Run full range (-4000 to 6000) + visualization
@@ -143,6 +149,7 @@ def optimize_policy_selection(
         - Economic: Non-negative capital stock, jobs, wage rate
         - Equity: Progressive distribution (P20, P40-60 >= P80-100, P99)
         - Income: All income groups must have non-negative after-tax income (everyone better off)
+        - Policy exclusions: Policies {37, 43, 49, 68} cannot be selected
         - Policy mutual exclusivity: At most one policy per competing group (15 groups)
         - Special policy constraints: E.g., VAT replacement excludes corporate surtax
         - NS mutual exclusivity: At most one policy per NS group
@@ -175,7 +182,14 @@ def optimize_policy_selection(
         14. Depreciation/Expensing: {7, 40, 65}
         15. Value Added Tax (VAT): {43, 68}
         
+        Excluded Policies (forced to 0):
+        - 37: Corporate Surtax of 5%
+        - 43: Enact a 5% VAT
+        - 49: Reinstate the Cadillac Tax
+        - 68: Replace CIT with 5% VAT
+        
         Special: If 68 (Replace CIT with VAT), then not 37 (Corporate Surtax)
+        Note: Both 68 and 37 are already in excluded list, so this constraint is redundant
         
     Args:
         df: DataFrame containing policy options and their impacts
@@ -233,6 +247,15 @@ def optimize_policy_selection(
     
     # Get policy group indices for mutual exclusivity constraints
     policy_groups = define_policy_groups(df)
+    
+    # Excluded policies: Force these policies to never be selected
+    excluded_policies = ['37', '43', '49', '68']
+    excluded_indices = get_policy_indices_by_codes(df, excluded_policies)
+    for idx in excluded_indices:
+        stage1_model.addConstr(x[idx] == 0, name=f"Exclude_policy_{idx}")
+    
+    if verbose and len(excluded_indices) > 0:
+        print(f"  Excluded policies: {len(excluded_indices)} policies forced to 0")
     
     # Fiscal constraint: Total dynamic revenue must be non-negative
     # Ensures the policy package doesn't increase the deficit
@@ -348,6 +371,10 @@ def optimize_policy_selection(
         quicksum(x2[i] * revenue[i] for i in indices),
         GRB.MAXIMIZE
     )
+    
+    # Excluded policies (same as Stage 1)
+    for idx in excluded_indices:
+        stage2_model.addConstr(x2[idx] == 0, name=f"Exclude_policy_{idx}")
     
     # Constraints (same as Stage 1, but with x2 variables)
     stage2_model.addConstr(
