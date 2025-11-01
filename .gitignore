@@ -5,6 +5,7 @@ build/
 dist/
 wheels/
 *.egg-info
+.mypy_cache/
 
 # Generated output files in root (should be in outputs/defense/)
 /max_gdp_defense*.csv
@@ -12,3 +13,7 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Excel temporary files
+~$*.xlsx
+~$*.xls
