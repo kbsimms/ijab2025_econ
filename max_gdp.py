@@ -233,7 +233,7 @@ def main() -> None:
         # Save to CSV
         output_file = "max_gdp.csv"
         result_df.to_csv(output_file, index=False)
-        logger.info(f"✓ Results saved to '{output_file}'")
+        logger.info(f"[OK] Results saved to '{output_file}'")
         
     except ValidationError as e:
         logger.error(f"Validation error: {e}")

@@ -428,7 +428,7 @@ def run_single_optimization(spending_level: int) -> Tuple[pd.DataFrame, dict]:
     output_file = f"outputs/defense/max_gdp_defense{spending_level}.csv"
     try:
         result_df.to_csv(output_file, index=False)
-        logger.info(f"✓ Results saved to '{output_file}'")
+        logger.info(f"[OK] Results saved to '{output_file}'")
     except Exception as e:
         logger.error(f"Failed to save results: {e}")
         raise
@@ -480,7 +480,7 @@ def run_full_range() -> None:
             result_df, kpi_dict = run_single_optimization(level)
             
             successful_runs.append(level)
-            logger.info(f"✓ Successfully generated max_gdp_defense{level}.csv")
+            logger.info(f"[OK] Successfully generated max_gdp_defense{level}.csv")
             
             # Track policy decisions
             selected_policies = set(result_df[COLUMNS["option"]].tolist())
@@ -494,13 +494,13 @@ def run_full_range() -> None:
             
         except ValidationError as e:
             failed_runs.append(level)
-            logger.error(f"✗ Validation failed for ${level:,}B: {e}")
+            logger.error(f"[FAILED] Validation failed for ${level:,}B: {e}")
         except GurobiError as e:
             failed_runs.append(level)
-            logger.error(f"✗ Optimization failed for ${level:,}B: {e}")
+            logger.error(f"[FAILED] Optimization failed for ${level:,}B: {e}")
         except Exception as e:
             failed_runs.append(level)
-            logger.error(f"✗ Unexpected error for ${level:,}B: {e}")
+            logger.error(f"[FAILED] Unexpected error for ${level:,}B: {e}")
     
     logger.info("\n" + "=" * 70)
     logger.info(f"Completed {len(successful_runs)}/{len(spending_levels)} optimization runs")
@@ -519,7 +519,7 @@ def run_full_range() -> None:
             policy_matrix_df.index.name = 'Policy'
             policy_matrix_file = "outputs/defense/policy_decisions_matrix.csv"
             policy_matrix_df.to_csv(policy_matrix_file)
-            logger.info(f"✓ Policy decision matrix saved to '{policy_matrix_file}'")
+            logger.info(f"[OK] Policy decision matrix saved to '{policy_matrix_file}'")
             logger.info(f"  Format: Policies as rows, defense spending levels as columns")
             
             # Create KPI summary matrix
@@ -527,7 +527,7 @@ def run_full_range() -> None:
             kpi_matrix_df.index.name = 'Defense_Spending_B'
             kpi_summary_file = "outputs/defense/economic_effects_summary.csv"
             kpi_matrix_df.to_csv(kpi_summary_file)
-            logger.info(f"✓ Economic effects summary saved to '{kpi_summary_file}'")
+            logger.info(f"[OK] Economic effects summary saved to '{kpi_summary_file}'")
         except Exception as e:
             logger.error(f"Failed to save summary files: {e}")
         
@@ -542,12 +542,12 @@ def run_full_range() -> None:
                 check=True
             )
             print(result.stdout)  # Print visualization output directly
-            logger.info("✓ Visualization complete!")
+            logger.info("[OK] Visualization complete!")
         except subprocess.CalledProcessError as e:
-            logger.error("✗ Visualization failed:")
+            logger.error("[FAILED] Visualization failed:")
             logger.error(e.stderr)
         except FileNotFoundError:
-            logger.warning("⚠ visualize_defense_spending.py not found, skipping visualization")
+            logger.warning("[WARNING] visualize_defense_spending.py not found, skipping visualization")
 
 
 def main() -> None:

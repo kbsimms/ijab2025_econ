@@ -89,9 +89,9 @@ def load_policy_data():
                 'df': df,
                 'selected': selected
             }
-            logger.info(f"  ✓ Loaded {file_path.name}: {len(selected)} policies selected")
+            logger.info(f"  [OK] Loaded {file_path.name}: {len(selected)} policies selected")
         except FileNotFoundError:
-            logger.warning(f"  ⚠ Missing {file_path.name}")
+            logger.warning(f"  [MISSING] {file_path.name}")
             policy_data[level] = {'df': None, 'selected': []}
     
     return policy_data
@@ -182,7 +182,7 @@ def create_heatmap(policy_data):
     # Save
     output_file = output_dir / 'policy_selection_heatmap.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    logger.info(f"✓ Heatmap saved to '{output_file}'")
+    logger.info(f"[OK] Heatmap saved to '{output_file}'")
     plt.close()
     
     return all_policies, matrix
@@ -280,7 +280,7 @@ def create_frequency_chart(all_policies, matrix):
     # Save
     output_file = output_dir / 'policy_frequency_analysis.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    logger.info(f"✓ Frequency chart saved to '{output_file}'")
+    logger.info(f"[OK] Frequency chart saved to '{output_file}'")
     plt.close()
     
     return freq_df
@@ -348,7 +348,7 @@ def create_defense_substitution_chart(policy_data):
     # Save
     output_file = output_dir / 'defense_policy_substitution.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    logger.info(f"✓ Defense substitution heatmap saved to '{output_file}'")
+    logger.info(f"[OK] Defense substitution heatmap saved to '{output_file}'")
     plt.close()
     
     # Print summary

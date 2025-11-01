@@ -228,16 +228,16 @@ def verify_ns_exclusivity(
             all_satisfied = False
         elif len(selected_in_group) == 1:
             policy = df.iloc[selected_in_group[0]][COLUMNS["option"]].split(":")[0]
-            logger.info(f"  ✓ {group}: 1 policy selected ({policy})")
+            logger.info(f"  [OK] {group}: 1 policy selected ({policy})")
         else:
-            logger.debug(f"  ✓ {group}: 0 policies selected")
+            logger.debug(f"  [OK] {group}: 0 policies selected")
     
     if violations:
         logger.error("NS MUTUAL EXCLUSIVITY VIOLATIONS DETECTED:")
         for v in violations:
             logger.error(v)
     else:
-        logger.info("  ✓ All NS constraints satisfied!")
+        logger.info("  [OK] All NS constraints satisfied!")
     
     return all_satisfied
 

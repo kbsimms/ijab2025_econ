@@ -78,9 +78,9 @@ for level in spending_levels:
     file_path = output_dir / f'max_gdp_defense{level}.csv'
     if file_path.exists():
         results[level] = pd.read_csv(file_path)
-        logger.info(f"  ✓ Loaded {file_path.name}: {len(results[level])} policies selected")
+        logger.info(f"  [OK] Loaded {file_path.name}: {len(results[level])} policies selected")
     else:
-        logger.warning(f"  ⚠ Missing {file_path.name}")
+        logger.warning(f"  [MISSING] {file_path.name}")
 
 # Calculate aggregate metrics for each spending level
 logger.info("Calculating aggregate metrics...")
@@ -350,7 +350,7 @@ plt.tight_layout()
 output_file = output_dir / 'defense_spending_analysis.png'
 try:
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    logger.info(f"✓ Visualization saved to '{output_file}'")
+    logger.info(f"[OK] Visualization saved to '{output_file}'")
 except Exception as e:
     logger.error(f"Failed to save visualization: {e}")
     raise
@@ -446,4 +446,4 @@ logger.info("  • Jobs: Actual full-time equivalent jobs created")
 logger.info("  • Revenue: Dynamic 10-year revenue in billions of dollars")
 logger.info("  • Equity ratio: P20/P99 (higher = more equitable)")
 logger.info("  • 'pp' = percentage points (e.g., from 0.13% to 0.14% = +0.01 pp)")
-logger.info(f"\n✓ Visualization complete! Check '{output_dir / 'defense_spending_analysis.png'}'")
+logger.info(f"\n[OK] Visualization complete! Check '{output_dir / 'defense_spending_analysis.png'}'")
