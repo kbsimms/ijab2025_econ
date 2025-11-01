@@ -182,9 +182,9 @@ print("  Revenue component range: {:.1f} to {:.1f}".format(revenue_norm.min(), r
 print("  Equity component range: {:.1f} to {:.1f}".format(equity_norm.min(), equity_norm.max()))
 print("  Composite index range: {:.1f} to {:.1f}".format(composite_index.min(), composite_index.max()))
 
-# Create comprehensive visualization with 2x3 grid
+# Create comprehensive visualization with 2x3 grid focused on key metrics
 fig, axes = plt.subplots(2, 3, figsize=(18, 10))
-fig.suptitle('Defense Spending Analysis: Apple-to-Apples Comparison', 
+fig.suptitle('Defense Spending Optimization: Key Economic Metrics',
              fontsize=16, fontweight='bold', y=0.995)
 
 # Define color scheme
@@ -197,118 +197,161 @@ colors = {
     'baseline': '#666666'  # Gray for reference lines
 }
 
-# Row 1, Col 1: Composite Economic Index
+# Row 1, Col 1: GDP Growth
 ax1 = axes[0, 0]
-ax1.plot(metrics['spending'], composite_index, 'o-', linewidth=2.5, markersize=8,
-         color='#8B4789', label='Composite Index')
-if baseline_exists:
-    baseline_index = composite_index[baseline_idx]
-    ax1.axhline(y=baseline_index, color=colors['baseline'], linestyle='--', linewidth=1.5,
-                alpha=0.7, label=f'Baseline: {baseline_index:.1f}')
-    ax1.axvline(x=0, color=colors['baseline'], linestyle='--', linewidth=1.5,
-                alpha=0.7)
-ax1.set_title('Composite Economic Index\n(50% Equity, 20% GDP, 20% Jobs, 10% Revenue)',
-              fontsize=12, fontweight='bold')
-ax1.set_xlabel('Defense Spending Change ($B)', fontsize=10)
-ax1.set_ylabel('Index Score (0-100)', fontsize=10)
-ax1.set_ylim(0, 105)
+gdp_pct = [g * 100 for g in metrics['gdp']]  # Convert to percentage
+ax1.plot(metrics['spending'], gdp_pct, 'o-', linewidth=2.5, markersize=8,
+         color=colors['gdp'], label='GDP Growth')
+ax1.axvline(x=0, color=colors['baseline'], linestyle='--', linewidth=1.5,
+            alpha=0.7, label='Baseline ($0B)')
+ax1.set_title('GDP Growth Impact', fontsize=12, fontweight='bold')
+ax1.set_xlabel('Defense Spending Change ($B)', fontsize=11)
+ax1.set_ylabel('GDP Growth (%)', fontsize=11)
 ax1.grid(True, alpha=0.3)
 ax1.legend(fontsize=9)
-# Add annotation for max value
-max_index_idx = np.argmax(composite_index)
-ax1.annotate(f'{composite_index[max_index_idx]:.1f}',
-             xy=(metrics['spending'][max_index_idx], composite_index[max_index_idx]),
-             xytext=(10, -15), textcoords='offset points',
-             fontsize=9, fontweight='bold', color='#8B4789',
-             bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor='#8B4789'))
+# Highlight maximum
+max_gdp_idx = np.argmax(gdp_pct)
+ax1.plot(metrics['spending'][max_gdp_idx], gdp_pct[max_gdp_idx], 'r*',
+         markersize=15, label='Maximum', zorder=5)
+ax1.annotate(f'Max: {gdp_pct[max_gdp_idx]:.2f}%\n@ ${metrics["spending"][max_gdp_idx]:,}B',
+             xy=(metrics['spending'][max_gdp_idx], gdp_pct[max_gdp_idx]),
+             xytext=(20, -20), textcoords='offset points',
+             fontsize=9, fontweight='bold',
+             bbox=dict(boxstyle='round,pad=0.5', facecolor='yellow', alpha=0.7),
+             arrowprops=dict(arrowstyle='->', color='red', lw=2))
 
-# Row 1, Col 2: Jobs Impact (Absolute values)
+# Row 1, Col 2: Jobs Impact
 ax2 = axes[0, 1]
-jobs_thousands = [j / 1000 for j in jobs_absolute]
-ax2.plot(metrics['spending'], jobs_thousands, 'o-', linewidth=2.5, markersize=8,
-         color=colors['jobs'], label='Job Impact')
-if baseline_exists:
-    baseline_jobs = jobs_absolute[baseline_idx] / 1000
-    ax2.axhline(y=baseline_jobs, color=colors['baseline'], linestyle='--', linewidth=1.5,
-                alpha=0.7, label=f'Baseline: {baseline_jobs:,.0f}K jobs')
-    ax2.axvline(x=0, color=colors['baseline'], linestyle='--', linewidth=1.5,
-                alpha=0.7)
-ax2.set_title('Employment Impact (FTE Jobs)', fontsize=12, fontweight='bold')
-ax2.set_xlabel('Defense Spending Change ($B)', fontsize=10)
-ax2.set_ylabel('Jobs (thousands)', fontsize=10)
+jobs_millions = [j / 1_000_000 for j in jobs_absolute]
+ax2.plot(metrics['spending'], jobs_millions, 'o-', linewidth=2.5, markersize=8,
+         color=colors['jobs'], label='Jobs Created')
+ax2.axhline(y=0, color='red', linestyle='--', linewidth=1, alpha=0.5)
+ax2.axvline(x=0, color=colors['baseline'], linestyle='--', linewidth=1.5,
+            alpha=0.7, label='Baseline ($0B)')
+ax2.set_title('Employment Impact', fontsize=12, fontweight='bold')
+ax2.set_xlabel('Defense Spending Change ($B)', fontsize=11)
+ax2.set_ylabel('Jobs Created (Millions)', fontsize=11)
 ax2.grid(True, alpha=0.3)
 ax2.legend(fontsize=9)
-ax2.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f'{x:,.0f}'))
+# Highlight maximum
+max_jobs_idx = np.argmax(jobs_millions)
+ax2.plot(metrics['spending'][max_jobs_idx], jobs_millions[max_jobs_idx], 'r*',
+         markersize=15, zorder=5)
+ax2.annotate(f'Max: {jobs_millions[max_jobs_idx]:.2f}M\n@ ${metrics["spending"][max_jobs_idx]:,}B',
+             xy=(metrics['spending'][max_jobs_idx], jobs_millions[max_jobs_idx]),
+             xytext=(20, -20), textcoords='offset points',
+             fontsize=9, fontweight='bold',
+             bbox=dict(boxstyle='round,pad=0.5', facecolor='yellow', alpha=0.7),
+             arrowprops=dict(arrowstyle='->', color='red', lw=2))
 
-# Row 1, Col 3: Dynamic Revenue (billions)
+# Row 1, Col 3: Revenue Impact
 ax3 = axes[0, 2]
 ax3.plot(metrics['spending'], revenue_abs, 'o-', linewidth=2.5, markersize=8,
-         color=colors['revenue'], label='Dynamic Revenue')
-ax3.axhline(y=0, color='red', linestyle='--', linewidth=1.5, alpha=0.5, 
+         color=colors['revenue'], label='Revenue Impact')
+ax3.axhline(y=0, color='red', linestyle='--', linewidth=2, alpha=0.7,
             label='Revenue Neutral')
-if baseline_exists:
-    ax3.axvline(x=0, color=colors['baseline'], linestyle='--', linewidth=1.5, 
-                alpha=0.7, label='Baseline ($0B)')
+ax3.axvline(x=0, color=colors['baseline'], linestyle='--', linewidth=1.5,
+            alpha=0.7, label='Baseline ($0B)')
 # Shade surplus/deficit areas
 ax3.fill_between(metrics['spending'], 0, revenue_abs,
                   where=[r >= 0 for r in revenue_abs],
-                  alpha=0.2, color='green', label='Surplus')
+                  alpha=0.2, color='green')
 ax3.fill_between(metrics['spending'], 0, revenue_abs,
                   where=[r < 0 for r in revenue_abs],
-                  alpha=0.2, color='red', label='Deficit')
+                  alpha=0.2, color='red')
 ax3.set_title('10-Year Revenue Impact', fontsize=12, fontweight='bold')
-ax3.set_xlabel('Defense Spending Change ($B)', fontsize=10)
-ax3.set_ylabel('Dynamic Revenue ($B)', fontsize=10)
+ax3.set_xlabel('Defense Spending Change ($B)', fontsize=11)
+ax3.set_ylabel('Revenue Surplus ($B)', fontsize=11)
 ax3.grid(True, alpha=0.3)
-ax3.legend(fontsize=8, loc='best')
-ax3.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f'${x:,.0f}B'))
+ax3.legend(fontsize=9, loc='best')
+# Highlight maximum surplus
+max_rev_idx = np.argmax(revenue_abs)
+ax3.plot(metrics['spending'][max_rev_idx], revenue_abs[max_rev_idx], 'r*',
+         markersize=15, zorder=5)
+ax3.annotate(f'Max: ${revenue_abs[max_rev_idx]:,.0f}B\n@ ${metrics["spending"][max_rev_idx]:,}B',
+             xy=(metrics['spending'][max_rev_idx], revenue_abs[max_rev_idx]),
+             xytext=(20, 20), textcoords='offset points',
+             fontsize=9, fontweight='bold',
+             bbox=dict(boxstyle='round,pad=0.5', facecolor='yellow', alpha=0.7),
+             arrowprops=dict(arrowstyle='->', color='red', lw=2))
 
-# Row 2, Col 1: Marginal GDP Efficiency
+# Row 2, Col 1: Capital Stock
 ax4 = axes[1, 0]
-ax4.plot(marginal_spending_points, marginal_gdp, 'o-', linewidth=2.5, markersize=8,
-         color=colors['efficiency'], label='Marginal Efficiency')
-ax4.axhline(y=0, color='red', linestyle='--', linewidth=1.5, alpha=0.5,
-            label='Zero Marginal Return')
-ax4.set_title('Marginal GDP Efficiency', fontsize=12, fontweight='bold')
-ax4.set_xlabel('Defense Spending Change ($B)', fontsize=10)
-ax4.set_ylabel('ΔGDP per $1B Increase', fontsize=10)
+capital_pct = [c * 100 for c in metrics['capital']]  # Convert to percentage
+ax4.plot(metrics['spending'], capital_pct, 'o-', linewidth=2.5, markersize=8,
+         color='#9B59B6', label='Capital Stock')
+ax4.axhline(y=0, color='red', linestyle='--', linewidth=1, alpha=0.5)
+ax4.axvline(x=0, color=colors['baseline'], linestyle='--', linewidth=1.5,
+            alpha=0.7, label='Baseline ($0B)')
+ax4.set_title('Capital Stock Change', fontsize=12, fontweight='bold')
+ax4.set_xlabel('Defense Spending Change ($B)', fontsize=11)
+ax4.set_ylabel('Capital Stock Change (%)', fontsize=11)
 ax4.grid(True, alpha=0.3)
 ax4.legend(fontsize=9)
+# Highlight maximum
+max_cap_idx = np.argmax(capital_pct)
+ax4.plot(metrics['spending'][max_cap_idx], capital_pct[max_cap_idx], 'r*',
+         markersize=15, zorder=5)
+ax4.annotate(f'Max: {capital_pct[max_cap_idx]:.2f}%\n@ ${metrics["spending"][max_cap_idx]:,}B',
+             xy=(metrics['spending'][max_cap_idx], capital_pct[max_cap_idx]),
+             xytext=(20, -20), textcoords='offset points',
+             fontsize=9, fontweight='bold',
+             bbox=dict(boxstyle='round,pad=0.5', facecolor='yellow', alpha=0.7),
+             arrowprops=dict(arrowstyle='->', color='red', lw=2))
 
-# Row 2, Col 2: Cost-Benefit Ratio
+# Row 2, Col 2: Wage Rate
 ax5 = axes[1, 1]
-ax5.plot(metrics['spending'], cost_benefit, 'o-', linewidth=2.5, markersize=8,
-         color=colors['efficiency'], label='GDP per $1B Net Cost')
-if baseline_exists:
-    ax5.axvline(x=0, color=colors['baseline'], linestyle='--', linewidth=1.5,
-                alpha=0.7, label='Baseline ($0B)')
-ax5.set_title('Cost-Benefit Efficiency', fontsize=12, fontweight='bold')
-ax5.set_xlabel('Defense Spending Change ($B)', fontsize=10)
-ax5.set_ylabel('GDP per $1B Net Fiscal Cost', fontsize=10)
+wage_pct = [w * 100 for w in metrics['wage']]  # Convert to percentage
+ax5.plot(metrics['spending'], wage_pct, 'o-', linewidth=2.5, markersize=8,
+         color='#E67E22', label='Wage Rate')
+ax5.axhline(y=0, color='red', linestyle='--', linewidth=1, alpha=0.5)
+ax5.axvline(x=0, color=colors['baseline'], linestyle='--', linewidth=1.5,
+            alpha=0.7, label='Baseline ($0B)')
+ax5.set_title('Wage Rate Change', fontsize=12, fontweight='bold')
+ax5.set_xlabel('Defense Spending Change ($B)', fontsize=11)
+ax5.set_ylabel('Wage Rate Change (%)', fontsize=11)
 ax5.grid(True, alpha=0.3)
 ax5.legend(fontsize=9)
-# Set reasonable y-axis limits to avoid extreme values
-max_reasonable = np.percentile([cb for cb in cost_benefit if cb > 0], 95)
-ax5.set_ylim(bottom=0, top=max_reasonable * 1.2)
+# Highlight maximum
+max_wage_idx = np.argmax(wage_pct)
+ax5.plot(metrics['spending'][max_wage_idx], wage_pct[max_wage_idx], 'r*',
+         markersize=15, zorder=5)
+ax5.annotate(f'Max: {wage_pct[max_wage_idx]:.2f}%\n@ ${metrics["spending"][max_wage_idx]:,}B',
+             xy=(metrics['spending'][max_wage_idx], wage_pct[max_wage_idx]),
+             xytext=(20, -20), textcoords='offset points',
+             fontsize=9, fontweight='bold',
+             bbox=dict(boxstyle='round,pad=0.5', facecolor='yellow', alpha=0.7),
+             arrowprops=dict(arrowstyle='->', color='red', lw=2))
 
-# Row 2, Col 3: Equity Ratio (P20 / P99)
+# Row 2, Col 3: Equity Impact (P20 vs P99)
 ax6 = axes[1, 2]
-ax6.plot(metrics['spending'], equity_ratio, 'o-', linewidth=2.5, markersize=8,
-         color=colors['equity'], label='Equity Ratio')
-ax6.axhline(y=1, color=colors['baseline'], linestyle='-', linewidth=1, alpha=0.5,
-            label='Equal benefit (P20 = P99)')
-if baseline_exists:
-    ax6.axvline(x=0, color=colors['baseline'], linestyle='--', linewidth=1.5,
-                alpha=0.7, label='Baseline ($0B)')
-ax6.set_title('Income Equity Ratio (P20 / P99)', fontsize=12, fontweight='bold')
-ax6.set_xlabel('Defense Spending Change ($B)', fontsize=10)
-ax6.set_ylabel('P20 to P99 Ratio', fontsize=10)
+p20_pct = [p * 100 for p in metrics['p20']]
+p99_pct = [p * 100 for p in metrics['p99']]
+ax6.plot(metrics['spending'], p20_pct, 'o-', linewidth=2.5, markersize=8,
+         color='#27AE60', label='Bottom 20% (P20)')
+ax6.plot(metrics['spending'], p99_pct, 'o-', linewidth=2.5, markersize=8,
+         color='#E74C3C', label='Top 1% (P99)')
+ax6.axhline(y=0, color='red', linestyle='--', linewidth=1, alpha=0.5)
+ax6.axvline(x=0, color=colors['baseline'], linestyle='--', linewidth=1.5,
+            alpha=0.7, label='Baseline ($0B)')
+ax6.set_title('Equity: Income Distribution Impact', fontsize=12, fontweight='bold')
+ax6.set_xlabel('Defense Spending Change ($B)', fontsize=11)
+ax6.set_ylabel('After-Tax Income Change (%)', fontsize=11)
 ax6.grid(True, alpha=0.3)
-ax6.legend(fontsize=9)
-# Add annotation
-ax6.text(0.02, 0.98, 'Higher = More Equitable\n(Bottom 20% benefits more)', 
-         transform=ax6.transAxes, fontsize=9, verticalalignment='top',
-         bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
+ax6.legend(fontsize=9, loc='best')
+# Add shaded area where P20 > P99 (progressive)
+ax6.fill_between(metrics['spending'], p20_pct, p99_pct,
+                  where=[p20 >= p99 for p20, p99 in zip(p20_pct, p99_pct)],
+                  alpha=0.2, color='green', label='Progressive')
+# Annotate maximum equity gap
+equity_gap = [p20 - p99 for p20, p99 in zip(p20_pct, p99_pct)]
+max_gap_idx = np.argmax(equity_gap)
+ax6.annotate(f'Max Progressive:\n@ ${metrics["spending"][max_gap_idx]:,}B',
+             xy=(metrics['spending'][max_gap_idx], p20_pct[max_gap_idx]),
+             xytext=(20, 10), textcoords='offset points',
+             fontsize=8, fontweight='bold',
+             bbox=dict(boxstyle='round,pad=0.5', facecolor='lightgreen', alpha=0.7),
+             arrowprops=dict(arrowstyle='->', color='green', lw=1.5))
 
 plt.tight_layout()
 output_file = output_dir / 'defense_spending_analysis.png'
