@@ -27,11 +27,92 @@ All scripts share common infrastructure through centralized configuration and ut
 ### Installation
 
 ```bash
-# Install dependencies
-pip install pandas gurobipy openpyxl matplotlib seaborn
-
-# Or using uv (if available)
+# Using uv (recommended for development)
 uv sync
+
+# Install with development dependencies
+uv sync --extra dev
+
+# Or using pip
+pip install pandas gurobipy openpyxl matplotlib seaborn
+```
+
+### Development Environment Setup
+
+This project enforces high code quality standards using ruff, mypy, and pylance. The environment is fully configured for development.
+
+**Automated Setup:**
+
+```bash
+# 1. Install dependencies with dev tools
+uv sync --extra dev
+
+# 2. Open project in VS Code
+# The .vscode/settings.json will automatically configure:
+#   - Pylance for strict type checking
+#   - Ruff for linting and formatting
+#   - Mypy for static analysis
+```
+
+**Code Quality Tools:**
+
+- **Ruff** - Fast Python linter and formatter
+  - Auto-fixes on save enabled
+  - Import organization
+  - Performance optimizations (PERF rules)
+  - Modernization suggestions (UP rules)
+
+- **Mypy** - Static type checker
+  - Strict mode enabled
+  - Full type coverage required
+  - Catches type errors before runtime
+
+- **Pylance** - Advanced language server
+  - Strict type checking mode
+  - Inlay hints for types
+  - Auto-import completions
+  - Workspace-wide diagnostics
+
+**Manual Code Quality Checks:**
+
+```bash
+# Run ruff linter
+uv run ruff check .
+
+# Auto-fix issues
+uv run ruff check --fix .
+
+# Format code
+uv run ruff format .
+
+# Run mypy type checker
+uv run mypy .
+```
+
+**VS Code Configuration:**
+
+The project includes [`<.vscode/settings.json>`](.vscode/settings.json:1) with:
+- Pylance strict type checking
+- Ruff as default formatter
+- Format on save enabled
+- Auto-organize imports
+- Performance optimizations
+- Project-specific linting rules
+
+All configurations are defined in [`pyproject.toml`](pyproject.toml:1):
+- Ruff rules (586 checks currently failing - improvement opportunity!)
+- Mypy strict settings
+- Build system configuration
+- Development dependencies
+
+**Current Code Quality Status:**
+
+```bash
+# Ruff: 586 errors found (348 auto-fixable)
+# Mypy: 56 type errors across 8 files
+
+# These are tracked for incremental improvement
+# New code should pass all checks
 ```
 
 ### Basic Usage

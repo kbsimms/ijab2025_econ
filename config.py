@@ -6,7 +6,6 @@ mappings used across all optimization scripts. This ensures consistency and
 makes it easy to update settings in one place.
 """
 
-from typing import Dict, List
 
 # ============================================================================
 # File Paths

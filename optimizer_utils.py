@@ -13,37 +13,38 @@ Key functions:
 - add_ns_constraints(): National security mutual exclusivity and spending
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Protocol
+
+from gurobipy import Model, quicksum
 import pandas as pd
-from gurobipy import Model, GRB, quicksum
 
-from config import (
-    COLUMNS,
-    EPSILON,
-    EXCLUDED_POLICIES,
-    POLICY_CO_EXCLUSIONS
-)
+from config import COLUMNS, EPSILON, EXCLUDED_POLICIES, POLICY_CO_EXCLUSIONS
 
 
-def get_policy_indices_by_codes(df: pd.DataFrame, policy_codes: List[str]) -> List[int]:
+class SupportsDebug(Protocol):
+    """Protocol for objects that support debug logging."""
+    def debug(self, message: str) -> None: ...
+
+
+def get_policy_indices_by_codes(df: pd.DataFrame, policy_codes: list[str]) -> list[int]:
     """
     Get positional indices for policies by their option codes.
-    
+
     This is a utility function used throughout the optimization scripts
     to find policies by their numeric or alphanumeric codes.
-    
+
     Args:
         df: DataFrame containing policy data
         policy_codes: List of policy codes (e.g., ['11', '36', '68'])
-        
+
     Returns:
         List of positional indices for matching policies
-        
+
     Examples:
         >>> indices = get_policy_indices_by_codes(df, ['11', '36'])
         >>> # Returns indices of policies starting with "11:" or "36:"
     """
-    indices = []
+    indices: list[int] = []
     for code in policy_codes:
         # Match policies that start with the code followed by ':'
         # This handles both numeric codes like "11:" and alphanumeric like "S15:"
@@ -52,60 +53,61 @@ def get_policy_indices_by_codes(df: pd.DataFrame, policy_codes: List[str]) -> Li
             # Get positional index (not DataFrame label index)
             label_idx = matching.index[0]
             pos_idx = df.index.get_loc(label_idx)
-            indices.append(pos_idx)
+            if isinstance(pos_idx, int):
+                indices.append(pos_idx)
     return indices
 
 
 def add_excluded_policy_constraints(
     model: Model,
-    x: dict,
+    x: Any,  # Gurobi tupledict[int, Var]
     df: pd.DataFrame,
-    excluded_codes: Optional[List[str]] = None,
-    logger=None
+    excluded_codes: list[str] | None = None,
+    logger: SupportsDebug | None = None
 ) -> int:
     """
     Add constraints to exclude certain policies from selection.
-    
+
     Implements the "no new taxes" constraint by forcing excluded
     policies to have value 0 in the optimization.
-    
+
     Args:
         model: Gurobi model to add constraints to
         x: Decision variables dict (policy index -> variable)
         df: DataFrame containing policy data
         excluded_codes: List of policy codes to exclude (uses config default if None)
         logger: Optional logger for progress messages
-        
+
     Returns:
         Number of constraints added
     """
     if excluded_codes is None:
         excluded_codes = EXCLUDED_POLICIES
-    
+
     excluded_indices = get_policy_indices_by_codes(df, excluded_codes)
-    
+
     for idx in excluded_indices:
         model.addConstr(x[idx] == 0, name=f"Exclude_policy_{idx}")
-    
+
     if logger and len(excluded_indices) > 0:
         logger.debug(f"Added {len(excluded_indices)} excluded policy constraints")
-    
+
     return len(excluded_indices)
 
 
 def add_fiscal_constraints(
     model: Model,
-    x: dict,
+    x: Any,  # Gurobi tupledict[int, Var]
     revenue: Any,  # ArrayLike (list, np.ndarray, or pandas Series)
     indices: range,
-    logger=None
+    logger: SupportsDebug | None = None
 ) -> None:
     """
     Add fiscal responsibility constraint (revenue neutrality).
-    
+
     Requires that total dynamic revenue is non-negative, ensuring
     the policy package doesn't increase the federal deficit.
-    
+
     Args:
         model: Gurobi model to add constraints to
         x: Decision variables dict
@@ -117,28 +119,28 @@ def add_fiscal_constraints(
         quicksum(x[i] * revenue[i] for i in indices) >= 0,
         name="RevenueNeutrality"
     )
-    
+
     if logger:
         logger.debug("Added revenue neutrality constraint")
 
 
 def add_economic_constraints(
     model: Model,
-    x: dict,
+    x: Any,  # Gurobi tupledict[int, Var]
     capital: Any,  # Array like (list, np.ndarray, or pandas Series)
     jobs: Any,  # ArrayLike
     wage: Any,  # ArrayLike
     indices: range,
-    logger=None
+    logger: SupportsDebug | None = None
 ) -> None:
     """
     Add economic impact constraints.
-    
+
     Ensures non-negative impacts on:
     - Capital stock
     - Job creation
     - Wage rates
-    
+
     Args:
         model: Gurobi model to add constraints to
         x: Decision variables dict
@@ -153,47 +155,47 @@ def add_economic_constraints(
         quicksum(x[i] * capital[i] for i in indices) >= 0,
         name="CapitalStock"
     )
-    
+
     # Job creation must be non-negative
     model.addConstr(
         quicksum(x[i] * jobs[i] for i in indices) >= 0,
         name="Jobs"
     )
-    
+
     # Wage rate change must be non-negative
     model.addConstr(
         quicksum(x[i] * wage[i] for i in indices) >= 0,
         name="WageRate"
     )
-    
+
     if logger:
         logger.debug("Added economic constraints (capital, jobs, wage)")
 
 
 def add_equity_constraints(
     model: Model,
-    x: dict,
+    x: Any,  # Gurobi tupledict[int, Var]
     p20_arr: Any,  # ArrayLike
     p40_arr: Any,  # ArrayLike
     p80_arr: Any,  # ArrayLike
     p99_arr: Any,  # ArrayLike
     indices: range,
-    logger=None
+    logger: SupportsDebug | None = None
 ) -> None:
     """
     Add progressive distribution equity constraints.
-    
+
     Implements the requirement that lower and middle-income groups
     benefit at least as much as upper-income groups. Specifically:
-    
+
     1. P20 (bottom 20%) must benefit >= P99 (top 1%) AND >= P80-100 (top 20%)
     2. P40-60 (middle class) must benefit >= P99 (top 1%) AND >= P80-100 (top 20%)
     3. All groups must have non-negative after-tax income effects
-    
+
     EPSILON is used to ensure STRICT inequality (P20 > P99, not just P20 >= P99).
     Without EPSILON, numerical precision issues could allow effectively equal
     values to satisfy the constraints, which doesn't meet the progressive requirement.
-    
+
     Args:
         model: Gurobi model to add constraints to
         x: Decision variables dict
@@ -209,44 +211,44 @@ def add_equity_constraints(
     p40 = quicksum(x[i] * p40_arr[i] for i in indices)
     p80 = quicksum(x[i] * p80_arr[i] for i in indices)
     p99 = quicksum(x[i] * p99_arr[i] for i in indices)
-    
+
     # Progressive distribution: Lower/middle income groups must benefit
     # at least as much as upper groups (with EPSILON for strict inequality)
     model.addConstr(p20 - p99 >= EPSILON, name="P20_ge_P99")
     model.addConstr(p40 - p99 >= EPSILON, name="P40_ge_P99")
     model.addConstr(p20 - p80 >= EPSILON, name="P20_ge_P80")
     model.addConstr(p40 - p80 >= EPSILON, name="P40_ge_P80")
-    
+
     # Non-negative after-tax income for all groups (everyone must be better off)
     # No EPSILON needed here - simple non-negativity constraint
     model.addConstr(p20 >= 0, name="P20_NonNegative")
     model.addConstr(p40 >= 0, name="P40_NonNegative")
     model.addConstr(p80 >= 0, name="P80_NonNegative")
     model.addConstr(p99 >= 0, name="P99_NonNegative")
-    
+
     if logger:
         logger.debug("Added equity constraints (progressive distribution)")
 
 
 def add_policy_mutual_exclusivity(
     model: Model,
-    x: dict,
-    policy_groups: Dict[str, List[int]],
-    logger=None
+    x: Any,  # Gurobi tupledict[int, Var]
+    policy_groups: dict[str, list[int]],
+    logger: SupportsDebug | None = None
 ) -> int:
     """
     Add policy mutual exclusivity constraints.
-    
+
     For each policy group (e.g., competing corporate tax structures),
     at most one option can be selected. This prevents selecting
     incompatible policies together.
-    
+
     Args:
         model: Gurobi model to add constraints to
         x: Decision variables dict
         policy_groups: Dict mapping group names to policy indices
         logger: Optional logger for progress messages
-        
+
     Returns:
         Number of constraints added
     """
@@ -258,44 +260,44 @@ def add_policy_mutual_exclusivity(
                 name=f"Policy_{group_name}_mutual_exclusivity"
             )
             count += 1
-    
+
     if logger and count > 0:
         logger.debug(f"Added {count} policy mutual exclusivity constraints")
-    
+
     return count
 
 
 def add_policy_co_exclusion_constraints(
     model: Model,
-    x: dict,
+    x: Any,  # Gurobi tupledict[int, Var]
     df: pd.DataFrame,
-    co_exclusions: Optional[List[tuple]] = None,
-    logger=None
+    co_exclusions: list[tuple[str, str]] | None = None,
+    logger: SupportsDebug | None = None
 ) -> int:
     """
     Add special policy co-exclusion constraints.
-    
+
     If policy A is selected, policy B cannot be selected (and vice versa).
     This is used for special cases beyond normal mutual exclusivity groups.
-    
+
     Args:
         model: Gurobi model to add constraints to
         x: Decision variables dict
         df: DataFrame containing policy data
         co_exclusions: List of (policy_A_code, policy_B_code) tuples
         logger: Optional logger for progress messages
-        
+
     Returns:
         Number of constraints added
     """
     if co_exclusions is None:
         co_exclusions = POLICY_CO_EXCLUSIONS
-    
+
     count = 0
     for code_a, code_b in co_exclusions:
         idx_a = get_policy_indices_by_codes(df, [code_a])
         idx_b = get_policy_indices_by_codes(df, [code_b])
-        
+
         if len(idx_a) > 0 and len(idx_b) > 0:
             # If x[A] = 1, then x[B] must be 0
             # Equivalent to: x[A] + x[B] <= 1
@@ -304,32 +306,32 @@ def add_policy_co_exclusion_constraints(
                 name=f"Policy_{code_a}_excludes_{code_b}"
             )
             count += 1
-    
+
     if logger and count > 0:
         logger.debug(f"Added {count} policy co-exclusion constraints")
-    
+
     return count
 
 
 def add_ns_mutual_exclusivity(
     model: Model,
-    x: dict,
-    ns_groups: Dict[str, List[int]],
-    logger=None
+    x: Any,  # Gurobi tupledict[int, Var]
+    ns_groups: dict[str, list[int]],
+    logger: SupportsDebug | None = None
 ) -> int:
     """
     Add National Security (NS) mutual exclusivity constraints.
-    
+
     For each NS group (e.g., NS1 with options NS1A, NS1B, NS1C),
     at most one option can be selected. This ensures coherent
     national security policy by preventing conflicting selections.
-    
+
     Args:
         model: Gurobi model to add constraints to
         x: Decision variables dict
         ns_groups: Dict mapping NS group names to policy indices
         logger: Optional logger for progress messages
-        
+
     Returns:
         Number of constraints added
     """
@@ -340,29 +342,29 @@ def add_ns_mutual_exclusivity(
             name=f"NS_{group}_mutual_exclusivity"
         )
         count += 1
-    
+
     if logger and count > 0:
         logger.debug(f"Added {count} NS mutual exclusivity constraints")
-    
+
     return count
 
 
 def add_ns_spending_constraint(
     model: Model,
-    x: dict,
+    x: Any,  # Gurobi tupledict[int, Var]
     revenue: Any,  # ArrayLike
-    ns_strict_indices: List[int],
+    ns_strict_indices: list[int],
     min_ns_spending: int,
-    logger=None
+    logger: SupportsDebug | None = None
 ) -> None:
     """
     Add National Security spending requirement constraint.
-    
+
     Total spending (negative revenue) from NS1-NS7 policies must
     equal exactly the specified minimum spending level.
-    
+
     Note: Revenue is negative for spending, so we use == -min_ns_spending
-    
+
     Args:
         model: Gurobi model to add constraints to
         x: Decision variables dict
@@ -375,28 +377,28 @@ def add_ns_spending_constraint(
         quicksum(x[i] * revenue[i] for i in ns_strict_indices) == -min_ns_spending,
         name="ExactNSSpending"
     )
-    
+
     if logger:
         logger.debug(f"Added NS spending constraint: ${min_ns_spending:,}B")
 
 
 def add_all_constraints(
     model: Model,
-    x: dict,
+    x: Any,  # Gurobi tupledict[int, Var]
     df: pd.DataFrame,
-    ns_groups: Dict[str, List[int]],
-    policy_groups: Dict[str, List[int]],
-    ns_strict_indices: List[int],
+    ns_groups: dict[str, list[int]],
+    policy_groups: dict[str, list[int]],
+    ns_strict_indices: list[int],
     min_ns_spending: int,
-    logger=None
+    logger: SupportsDebug | None = None
 ) -> None:
     """
     Add all standard constraints to the optimization model.
-    
+
     This is a convenience function that adds all the standard constraints
     used in the defense optimization scripts. Reduces code duplication
     and ensures consistency across optimization stages.
-    
+
     Args:
         model: Gurobi model to add constraints to
         x: Decision variables dict
@@ -417,7 +419,7 @@ def add_all_constraints(
     p40_arr = df[COLUMNS["p40_60"]].values
     p80_arr = df[COLUMNS["p80_100"]].values
     p99_arr = df[COLUMNS["p99"]].values
-    
+
     # Add all constraint types
     add_excluded_policy_constraints(model, x, df, logger=logger)
     add_fiscal_constraints(model, x, revenue, indices, logger=logger)
