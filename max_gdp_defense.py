@@ -21,7 +21,7 @@ and find the absolute best one that meets all requirements. Can analyze:
 
 CONSTRAINTS (Requirements every solution must meet):
 
-1. FISCAL: Revenue neutrality - can't increase the federal deficit
+1. FISCAL: Revenue surplus of at least $600B - generates substantial surplus
 
 2. ECONOMIC: Must improve the economy across the board
    - More jobs created
@@ -164,7 +164,7 @@ def optimize_policy_selection(  # noqa: PLR0912, PLR0915
     Two-stage optimization with equity, policy, and national security constraints.
 
     Stage 1: Maximize GDP subject to all constraints
-        - Fiscal: Revenue neutrality (sum of dynamic revenue >= 0)
+        - Fiscal: Revenue surplus requirement (sum of dynamic revenue >= 600)
         - Economic: Non-negative capital stock, jobs, wage rate
         - Equity: Progressive distribution (P20, P40-60 >= P80-100, P99)
         - Income: All income groups must have non-negative after-tax income (everyone better off)

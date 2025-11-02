@@ -7,8 +7,6 @@ Option,Long-Run Change in GDP,Capital Stock,Full-Time Equivalent Jobs,Wage Rate,
 10: Make Section 199A Deduction Permanent,0.002,0.003,57906,0.001,0.002,0.003,0.008,0.006,-438.7,-391.2,,False
 11: Lower the Corporate Tax Rate (Lower to 15%),0.005,0.01,100937,0.004,0.012,0.011,0.017,0.026,-978.94,-847.71,,False
 "52: Reform the EITC for Married and Unmarried Workers, with and without Children",0.001,0.001,96644,0.0,0.031,0.001,0.001,0.001,-164.04,-105.71,,False
-54: Make Child Tax Credit First Dollar Refundable,-0.0005,-0.0005,-14698,-0.0005,0.02,0.001,0.0,0.0,-37.0,-43.9,,False
-56: Increase the Standard Deduction by 25% for All Filing Groups,0.0005,0.001,69883,-0.0005,0.001,0.007,0.001,0.0,-622.66,-558.51,,False
 "S1: Free, universal pre-kindergarten for all three- and four-year olds",0.009,0.0,0,0.0,0.0,0.0,0.0,0.0,-200.0,-200.0,,False
 S2: Tuition-free two-year community college,0.011,0.0,0,0.0,0.0,0.0,0.0,0.0,-109.0,-109.0,,False
 S3: Increase Pell Grants for low-income students,0.013,0.0,0,0.0,0.0,0.0,0.0,0.0,-80.0,-80.0,,False
@@ -26,9 +24,10 @@ NS2C: Reduce by 50% runds dedicated to the Middle East (including Iran & Israel)
 NS5C: Reduce by 50% runds dedicated to advanced national security technology,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,500.0,500.0,,True
 NS7C: Conduct fundamental restructuring of base defense spending,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,1500.0,1500.0,,True
 15: Repeal the Tax Cuts and Jobs Act (TCJA) Individual Tax Changes,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,829.72,648.75,,False
-19: Eliminate the Child Tax Credit,0.001,0.001,99527,0.0005,-0.031,-0.008,0.001,0.001,890.72,917.22,,False
+20: Reduce the Child Tax Credit to $500,0.0005,0.0005,43923,-0.0005,-0.014,-0.005,0.0,0.0,593.35,585.22,,False
 "24: Lower the Home Mortgage Interest Deduction Cap to $500,000 in Principal",-0.001,-0.019,-29557,-0.0005,-0.006,-0.009,-0.018,-0.011,147.51,132.22,,False
 25: Eliminate the Charitable Deduction,-0.001,-0.002,-90202,-0.0005,-0.001,-0.002,-0.009,-0.014,747.4,694.52,,False
+26: Limit Tax Savings from Itemized Deductions to 28 Percent of Value,-0.001,-0.001,-63819,-0.0005,-0.001,-0.001,-0.004,-0.011,212.96,184.19,,False
 27: Eliminate the Tax Exclusion for Municipal Bond Interest,-0.0005,-0.0005,-11152,-0.0005,-0.0005,-0.0005,-0.003,-0.006,192.84,191.84,,False
 "35: Apply the Social Security Payroll Tax to Wages Above $400,000",-0.002,-0.002,-226014,0.0,-0.002,-0.002,-0.007,-0.021,822.79,686.04,,False
 44: Return the Estate Tax to Clinton-era Levels,-0.002,-0.006,-41415,-0.002,-0.002,-0.002,-0.017,-0.055,887.4,823.9,,False

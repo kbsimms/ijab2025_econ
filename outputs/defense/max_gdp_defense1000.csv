@@ -13,13 +13,13 @@ S4: Increase funding for community colleges,0.002,0.0,0,0.0,0.0,0.0,0.0,0.0,-62.
 "S6: Train, equip, and diversify American teachers",0.0005,0.0,0,0.0,0.0,0.0,0.0,0.0,-9.0,-9.0,,False
 "S7: Increase institutional aid grants to HBCUs, TCUs, and MSIs",0.005,0.0,0,0.0,0.0,0.0,0.0,0.0,-5.0,-5.0,,False
 "S8: Make child care more affordable, invest in high-quality care, and fund training for child care providers",0.012,0.0,0,0.0,0.0,0.0,0.0,0.0,-2.0,-2.0,,False
-S9: Create a national comprehensive paid family and medical leave program,0.001,0.0,0,0.0,0.0,0.0,0.0,0.0,-225.0,-225.0,,False
 S10: Expand summer Electronic Benefits Transfer to all eligible children nationwide,0.002,0.0,0,0.0,0.0,0.0,0.0,0.0,-25.0,-25.0,,False
 S11: Expand free meals for children in the highest poverty districts,0.005,0.0,0,0.0,0.0,0.0,0.0,0.0,-17.0,-17.0,,False
 S12: Facilitate re-entry for formerly incarcerated individuals through Supplemental Nutritional Assistance Program (SNAP) eligibility,0.0005,0.0,0,0.0,0.0,0.0,0.0,0.0,-10.0,-10.0,,False
 S17: Cancel student loan debt relief (Biden executive action),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,400.0,400.0,,False
 NS2A: Double funds dedicated to the Middle East (including Iran & Israel),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-1000.0,-1000.0,,True
 15: Repeal the Tax Cuts and Jobs Act (TCJA) Individual Tax Changes,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,829.72,648.75,,False
+"16: Revert to Pre-2018 Individual Income Tax Rates on Income Over $400,000",-0.0005,0.0,0,0.0005,0.0,0.0,0.0,0.0,107.29,85.43,,False
 "17: Add a New Bracket of 45 Percent for Income Above $750,000",-0.002,-0.02,-165888,-0.001,-0.002,-0.002,-0.007,-0.021,576.22,441.05,,False
 19: Eliminate the Child Tax Credit,0.001,0.001,99527,0.0005,-0.031,-0.008,0.001,0.001,890.72,917.22,,False
 "24: Lower the Home Mortgage Interest Deduction Cap to $500,000 in Principal",-0.001,-0.019,-29557,-0.0005,-0.006,-0.009,-0.018,-0.011,147.51,132.22,,False
@@ -35,3 +35,4 @@ NS2A: Double funds dedicated to the Middle East (including Iran & Israel),0.0,0.
 65: Enact Full Expensing for All Capital Investment,0.023,0.043,441769,0.019,0.021,0.022,0.029,0.043,-1707.41,-1166.66,,False
 66: Maintain Limitation on Interest Deductibility at 30 Percent of EBITDA,0.001,0.002,18832,0.001,0.001,0.001,0.001,0.001,-65.84,-45.9,,False
 67: Eliminate Various Business Tax Expenditures,-0.002,-0.004,-33000,-0.002,-0.011,-0.01,-0.018,-0.031,985.6,926.43,,False
+70: Increase Alcohol Excise Taxes to $16 per Proof Gallon and Index to Inflation,-0.0005,-0.0005,-22718,-0.001,-0.001,-0.001,-0.001,-0.0005,136.07,129.14,,False

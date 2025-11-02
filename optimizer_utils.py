@@ -103,10 +103,10 @@ def add_fiscal_constraints(
     logger: SupportsDebug | None = None
 ) -> None:
     """
-    Add fiscal responsibility constraint (revenue neutrality).
+    Add fiscal responsibility constraint (revenue surplus requirement).
 
-    Requires that total dynamic revenue is non-negative, ensuring
-    the policy package doesn't increase the federal deficit.
+    Requires that total dynamic revenue is at least $600B, ensuring
+    the policy package generates a substantial revenue surplus.
 
     Args:
         model: Gurobi model to add constraints to
@@ -116,12 +116,12 @@ def add_fiscal_constraints(
         logger: Optional logger for progress messages
     """
     model.addConstr(
-        quicksum(x[i] * revenue[i] for i in indices) >= 0,
-        name="RevenueNeutrality"
+        quicksum(x[i] * revenue[i] for i in indices) >= 600,
+        name="RevenueSurplus"
     )
 
     if logger:
-        logger.debug("Added revenue neutrality constraint")
+        logger.debug("Added revenue surplus constraint: >= $600B")
 
 
 def add_economic_constraints(
