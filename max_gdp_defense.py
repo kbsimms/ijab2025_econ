@@ -42,9 +42,12 @@ CONSTRAINTS (Requirements every solution must meet):
    - Only one option per defense category (e.g., can't both increase AND decrease)
 
 OPTIMIZATION APPROACH:
-Two-stage process ensures the very best solution:
+Three-stage process ensures the very best solution:
 - Stage 1: Find maximum possible GDP growth meeting all constraints
-- Stage 2: Among all max-GDP solutions, pick one with highest revenue surplus
+- Stage 2: Among all max-GDP solutions, pick those that create the most jobs
+- Stage 3: Among solutions with max GDP and max jobs, pick one with highest revenue surplus
+
+This hierarchical approach ensures optimal GDP, employment, and fiscal outcomes.
 
 USAGE EXAMPLES:
     # Run full analysis across all defense spending levels
@@ -160,9 +163,9 @@ def optimize_policy_selection(  # noqa: PLR0912, PLR0915
     ns_strict_indices: list[int],
     min_ns_spending: int = DEFENSE_SPENDING["baseline"],
     verbose: bool = True,
-) -> tuple[pd.DataFrame, float, float, dict[str, float]]:
+) -> tuple[pd.DataFrame, float, float, float, dict[str, float]]:
     """
-    Two-stage optimization with equity, policy, and national security constraints.
+    Three-stage optimization with equity, policy, and national security constraints.
 
     Stage 1: Maximize GDP subject to all constraints
         - Fiscal: Revenue surplus requirement (sum of dynamic revenue >= 600)
@@ -175,10 +178,15 @@ def optimize_policy_selection(  # noqa: PLR0912, PLR0915
         - NS mutual exclusivity: At most one policy per NS group
         - NS spending target: Exactly min_ns_spending on NS1-NS7 policies
 
-    Stage 2: Maximize revenue while maintaining optimal GDP
+    Stage 2: Maximize job creation while maintaining optimal GDP
         - Same constraints as Stage 1
         - Additionally constrains GDP to equal the optimal value from Stage 1
-        - Breaks ties by maximizing revenue surplus
+        - Finds maximum job creation among optimal GDP solutions
+
+    Stage 3: Maximize revenue surplus while maintaining optimal GDP and jobs
+        - Same constraints as Stage 1
+        - Additionally constrains GDP and jobs to optimal values from Stages 1 & 2
+        - Final tiebreaker selecting unique solution with highest fiscal surplus
 
     Equity Constraints Explained:
         The equity constraints ensure progressive policy impacts:
@@ -219,10 +227,11 @@ def optimize_policy_selection(  # noqa: PLR0912, PLR0915
         verbose: If True, prints progress messages
 
     Returns:
-        tuple: (selected_df, gdp_impact, revenue_impact, kpi_dict)
+        tuple: (selected_df, gdp_impact, jobs_impact, revenue_impact, kpi_dict)
             - selected_df: DataFrame of selected policies
             - gdp_impact: Total GDP impact achieved
-            - revenue_impact: Total revenue impact achieved
+            - jobs_impact: Total jobs created
+            - revenue_impact: Total revenue surplus achieved
             - kpi_dict: Dictionary of all KPI values
     """
     # Extract data arrays from DataFrame for optimization
@@ -232,6 +241,7 @@ def optimize_policy_selection(  # noqa: PLR0912, PLR0915
     # Convert DataFrame columns to numpy arrays for efficient access
     gdp = df[COLUMNS["gdp"]].values
     revenue = df[COLUMNS["dynamic_revenue"]].values
+    jobs = df[COLUMNS["jobs"]].values
 
     # Validate inputs before optimization
     try:
@@ -313,9 +323,9 @@ def optimize_policy_selection(  # noqa: PLR0912, PLR0915
     if verbose:
         logger.debug(f"Stage 1 optimal GDP: {gdp_star * 100:.4f}%")
 
-    # === Stage 2: Maximize Revenue under optimal GDP ===
+    # === Stage 2: Maximize Job Creation under optimal GDP ===
     if verbose:
-        logger.info("Running optimization (Stage 2: Maximize Revenue)...")
+        logger.info("Running optimization (Stage 2: Maximize Jobs)...")
 
     try:
         stage2_model = Model("Stage2_MaximizeRevenue")
@@ -329,8 +339,8 @@ def optimize_policy_selection(  # noqa: PLR0912, PLR0915
     # New decision variables for Stage 2
     x2 = stage2_model.addVars(indices, vtype=GRB.BINARY, name="x")
 
-    # Objective: Maximize dynamic revenue (break ties from Stage 1)
-    stage2_model.setObjective(quicksum(x2[i] * revenue[i] for i in indices), GRB.MAXIMIZE)
+    # Objective: Maximize job creation (break ties from Stage 1)
+    stage2_model.setObjective(quicksum(x2[i] * jobs[i] for i in indices), GRB.MAXIMIZE)
 
     # Add all constraints (same as Stage 1, but with x2 variables)
     add_all_constraints(
@@ -363,17 +373,73 @@ def optimize_policy_selection(  # noqa: PLR0912, PLR0915
             logger.error(error_msg)
         raise ValueError(f"{error_msg}. This should not happen if Stage 1 succeeded.")
 
-    # Extract solution: policies where x2[i] > BINARY_THRESHOLD are selected
-    # Using BINARY_THRESHOLD handles numerical precision issues in binary variables
-    selected_indices = [i for i in indices if x2[i].X > BINARY_THRESHOLD]
+    # Store the optimal jobs value for use in Stage 3
+    jobs_star = stage2_model.ObjVal
+    if verbose:
+        logger.debug(f"Stage 2 optimal jobs: {jobs_star:,.0f}")
+
+    # === Stage 3: Maximize Revenue under optimal GDP and Jobs ===
+    if verbose:
+        logger.info("Running optimization (Stage 3: Maximize Revenue)...")
+
+    try:
+        stage3_model = Model("Stage3_MaximizeRevenue")
+    except GurobiError:
+        if verbose:
+            logger.exception("Failed to create Stage 3 model")
+        raise
+    if SUPPRESS_GUROBI_OUTPUT:
+        stage3_model.setParam("OutputFlag", 0)
+
+    # New decision variables for Stage 3
+    x3 = stage3_model.addVars(indices, vtype=GRB.BINARY, name="x")
+
+    # Objective: Maximize revenue surplus (final tiebreaker)
+    stage3_model.setObjective(quicksum(x3[i] * revenue[i] for i in indices), GRB.MAXIMIZE)
+
+    # Add all constraints (same as Stage 1, but with x3 variables)
+    add_all_constraints(
+        stage3_model,
+        x3,
+        df,
+        ns_groups,
+        policy_groups,
+        ns_strict_indices,
+        min_ns_spending,
+        logger=logger if verbose else None,
+    )
+
+    # Additional constraints: Fix GDP and jobs to optimal values
+    stage3_model.addConstr(quicksum(x3[i] * gdp[i] for i in indices) == gdp_star, name="GDPMatch")
+    stage3_model.addConstr(
+        quicksum(x3[i] * jobs[i] for i in indices) == jobs_star, name="JobsMatch"
+    )
+
+    # Solve Stage 3
+    try:
+        stage3_model.optimize()
+    except GurobiError:
+        if verbose:
+            logger.exception("Stage 3 optimization failed")
+        raise
+
+    # Check if model found a feasible solution
+    if stage3_model.status != GRB.OPTIMAL:
+        error_msg = f"Stage 3 optimization failed with status {stage3_model.status}"
+        if verbose:
+            logger.error(error_msg)
+        raise ValueError(f"{error_msg}. This should not happen if Stages 1 and 2 succeeded.")
+
+    # Extract final solution from Stage 3
+    selected_indices = [i for i in indices if x3[i].X > BINARY_THRESHOLD]
     selected_df = df.iloc[selected_indices].copy()
 
-    # Calculate KPI values
+    # Calculate KPI values from final solution
     kpi_dict: dict[str, float] = {
         "GDP": gdp_star,
-        "Revenue": stage2_model.ObjVal,
+        "Jobs": jobs_star,
+        "Revenue": stage3_model.ObjVal,
         "Capital": float(sum(selected_df[COLUMNS["capital"]])),
-        "Jobs": float(sum(selected_df[COLUMNS["jobs"]])),
         "Wage": float(sum(selected_df[COLUMNS["wage"]])),
         "P20": float(sum(selected_df[COLUMNS["p20"]])),
         "P40-60": float(sum(selected_df[COLUMNS["p40_60"]])),
@@ -381,7 +447,7 @@ def optimize_policy_selection(  # noqa: PLR0912, PLR0915
         "P99": float(sum(selected_df[COLUMNS["p99"]])),
     }
 
-    return selected_df, gdp_star, stage2_model.ObjVal, kpi_dict
+    return selected_df, gdp_star, jobs_star, stage3_model.ObjVal, kpi_dict
 
 
 def run_single_optimization(spending_level: int) -> tuple[pd.DataFrame, dict[str, float]]:
@@ -405,13 +471,18 @@ def run_single_optimization(spending_level: int) -> tuple[pd.DataFrame, dict[str
     df, ns_groups = load_policy_data()
     ns_strict_indices = get_ns_strict_indices(df)
 
-    # Run optimization with specified spending level
-    result_df, gdp_impact, revenue_impact, kpi_dict = optimize_policy_selection(
+    # Run optimization with specified spending level (now returns 5 values)
+    result_df, gdp_impact, jobs_impact, revenue_impact, kpi_dict = optimize_policy_selection(
         df, ns_groups, ns_strict_indices, min_ns_spending=spending_level
     )
 
     # Display results
     display_results(result_df, gdp_impact, revenue_impact)
+
+    logger.info("\n[Three-Stage Optimization Results]")
+    logger.info(f"  Stage 1 - Optimal GDP: {gdp_impact * 100:.4f}%")
+    logger.info(f"  Stage 2 - Optimal Jobs: {jobs_impact:,.0f}")
+    logger.info(f"  Stage 3 - Optimal Revenue: ${revenue_impact:,.2f}B")
 
     # Save to CSV with spending level in filename
     output_file = f"outputs/defense/max_gdp_defense{spending_level}.csv"

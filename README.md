@@ -6,8 +6,8 @@ Optimization scripts for analyzing economic policy scenarios using linear progra
 
 This project provides optimization scripts for analyzing economic policy scenarios:
 
-1. **max_gdp.py** - Basic GDP maximization with revenue surplus requirement
-2. **max_gdp_defense.py** - GDP maximization with $600B revenue surplus, national security, and equity requirements (parameterized for various spending levels)
+1. **max_gdp.py** - Three-stage optimization: maximize GDP, then jobs, then revenue surplus
+2. **max_gdp_defense.py** - Three-stage optimization with national security and equity requirements (parameterized for various spending levels)
 
 Additionally, two visualization scripts are included for analyzing and comparing results:
 
@@ -159,17 +159,28 @@ Let total spending from NS1–NS7 policies (negative revenue) match required bud
 
 Because spending is modeled as negative revenue, this ensures total NS1–NS7 policies cost exactly R billion.
 
-### 🎯 Stage 2 Objective: Maximize Revenue with Fixed GDP
+### 🎯 Stage 2 Objective: Maximize Jobs with Fixed GDP
 
 After solving Stage 1 and getting optimal GDP G*, we solve:
 
 ```
-max Σ(i∈I) r_i * x_i
+max Σ(i∈I) j_i * x_i
 s.t. Σ(i∈I) g_i * x_i = G*
 ```
 
 All other constraints are re-imposed from Stage 1.
 
+### 🎯 Stage 3 Objective: Maximize Revenue with Fixed GDP and Jobs
+
+After solving Stages 1 and 2 and getting optimal jobs J*, we solve:
+
+```
+max Σ(i∈I) r_i * x_i
+s.t. Σ(i∈I) g_i * x_i = G*
+     Σ(i∈I) j_i * x_i = J*
+```
+
+All other constraints are re-imposed from Stage 1.
 
 ## Quick Start
 
@@ -253,6 +264,7 @@ uv run mypy .
 **VS Code Configuration:**
 
 The project includes [`.vscode/settings.json`](.vscode/settings.json) with:
+
 - Pylance strict type checking
 - Ruff as default formatter
 - Format on save enabled
@@ -261,6 +273,7 @@ The project includes [`.vscode/settings.json`](.vscode/settings.json) with:
 - Project-specific linting rules
 
 All configurations are defined in [`pyproject.toml`](pyproject.toml):
+
 - Ruff rules and linting configuration
 - Mypy strict type checking settings
 - Build system configuration
@@ -358,12 +371,15 @@ All scripts include NS mutual exclusivity constraints to prevent selecting confl
 - **Example:** If policies NS1A, NS1B, and NS1C exist, only one of these three can be selected
 - **Purpose:** Ensures coherent national security strategy by preventing contradictory policy selections
 
-### 3. Two-Stage Optimization
+### 3. Three-Stage Optimization
 
-All scripts use a sophisticated two-stage approach:
+All scripts use a sophisticated three-stage approach:
 
 - **Stage 1:** Find the maximum achievable GDP growth given all constraints
-- **Stage 2:** Among solutions achieving optimal GDP, select the best according to secondary criteria (varies by script)
+- **Stage 2:** Among solutions achieving optimal GDP, select those that create the most jobs (maximize employment)
+- **Stage 3:** Among solutions with optimal GDP and jobs, select the one with highest revenue surplus (maximize fiscal conservatism)
+
+This hierarchical optimization ensures the solution is optimal across multiple dimensions: economic growth, employment, and fiscal responsibility.
 
 ### 4. Consistent Column Naming
 
@@ -382,7 +398,11 @@ All scripts now use standardized column names from `config.py`, ensuring consist
 - Revenue surplus requirement (total dynamic revenue ≥ $600B)
 - NS mutual exclusivity (at most one policy per NS group)
 
-**Tiebreaking:** Maximizes revenue surplus among optimal GDP solutions
+**Optimization Stages:**
+
+- Stage 1: Maximize GDP
+- Stage 2: Maximize jobs (among optimal GDP solutions)
+- Stage 3: Maximize revenue surplus (among solutions with optimal GDP and jobs)
 
 **How to Run:**
 
@@ -395,9 +415,10 @@ python max_gdp.py
 1. Loads policy data from Excel file
 2. Identifies National Security policy groups
 3. Stage 1: Finds maximum achievable GDP growth
-4. Stage 2: Among optimal solutions, selects one with highest revenue surplus
-5. Displays results to console
-6. Saves selected policies to CSV
+4. Stage 2: Among optimal GDP solutions, finds maximum job creation
+5. Stage 3: Among solutions with optimal GDP and jobs, finds maximum revenue surplus
+6. Displays results to console
+7. Saves selected policies to CSV
 
 **Output:** `max_gdp.csv` containing:
 
@@ -436,7 +457,11 @@ python max_gdp.py
   - NS mutual exclusivity (at most one policy per NS group)
   - Configurable minimum spending on NS1-NS7 policies
 
-**Tiebreaking:** Maximizes revenue surplus among optimal GDP solutions
+**Optimization Stages:**
+
+- Stage 1: Maximize GDP
+- Stage 2: Maximize jobs (among optimal GDP solutions)
+- Stage 3: Maximize revenue surplus (among solutions with optimal GDP and jobs)
 
 **How to Run:**
 
@@ -459,9 +484,10 @@ python max_gdp_defense.py --all
 2. Identifies NS policy groups and NS1-NS7 policies
 3. Defines policy mutual exclusivity groups (15 groups)
 4. Stage 1: Finds maximum GDP with all constraints
-5. Stage 2: Maximizes revenue while maintaining optimal GDP
-6. Displays detailed results to console
-7. Saves results to `outputs/defense/max_gdp_defense{spending}.csv`
+5. Stage 2: Finds maximum job creation while maintaining optimal GDP
+6. Stage 3: Finds maximum revenue surplus while maintaining optimal GDP and jobs
+7. Displays detailed results to console
+8. Saves results to `outputs/defense/max_gdp_defense{spending}.csv`
 
 **Full Range Mode** (default):
 
@@ -592,6 +618,7 @@ All scripts read from: `tax reform & spending menu options (v8) template.xlsx`
 **National Security Policies:**
 
 Policies must follow the naming convention: `NSxY: Description`
+
 - `x` = one or more digits (e.g., 1, 2, 7, 15)
 - `Y` = a letter (A, B, C, etc.)
 - Examples:
@@ -737,11 +764,13 @@ Common functionality extracted to eliminate code duplication:
 - **Objective:** Linear (weighted sum of policy impacts)
 - **Constraints:** Linear inequalities and equalities
 
-### Two-Stage Approach Benefits
+### Three-Stage Approach Benefits
 
-1. **Stage 1** finds the frontier of what's possible
-2. **Stage 2** intelligently breaks ties using secondary objectives
-3. Ensures globally optimal solutions (not just locally optimal)
+1. **Stage 1** finds the maximum achievable GDP growth (primary objective)
+2. **Stage 2** selects for maximum employment among optimal GDP solutions (social objective)
+3. **Stage 3** ensures maximum fiscal surplus among solutions with optimal GDP and jobs (fiscal objective)
+4. Hierarchical optimization ensures globally optimal solutions across all three dimensions
+5. Guarantees the solution is best for growth, employment, AND fiscal responsibility
 
 ## Testing & Validation
 
@@ -833,7 +862,7 @@ When adding new optimization scripts or modifying existing ones:
 2. Use standardized column names from `COLUMNS` dictionary
 3. Use shared utility functions for data loading and display
 4. Include NS mutual exclusivity constraints
-5. Use two-stage optimization approach
+5. Use three-stage optimization approach (GDP → Jobs → Revenue)
 6. Follow existing code structure and naming conventions
 7. Add comprehensive docstrings with type hints
 8. Document all constraints clearly
@@ -854,15 +883,18 @@ All code in this project follows these documentation standards:
 ### Module Responsibilities
 
 **Core Infrastructure:**
+
 - **config.py** - All constants, column mappings, patterns, thresholds
 - **validation.py** - Pre-flight checks, input validation, actionable errors
 - **logger.py** - Structured logging (ERROR/WARNING/INFO/DEBUG)
 
 **Optimization:**
+
 - **optimizer_utils.py** - Gurobi constraint building (fiscal, equity, policy exclusions)
 - **utils.py** - Data loading, NS group extraction, result formatting
 
 **Separation of Concerns:**
+
 - `optimizer_utils.py` handles Gurobi model construction (requires gurobipy)
 - `utils.py` handles data I/O and display (no Gurobi dependency)
 - These serve different purposes and should NOT be merged
@@ -891,6 +923,7 @@ python visualize_policy_selection.py
 ### Validation Features
 
 The validation framework provides:
+
 - Excel file existence and format checks
 - DataFrame structure validation
 - NS policy naming convention validation
@@ -901,6 +934,7 @@ The validation framework provides:
 ### Error Handling
 
 All scripts include comprehensive error handling:
+
 - **ValidationError** - Input data issues (actionable messages)
 - **GurobiError** - Optimization failures (license, infeasibility)
 - **FileNotFoundError** - Missing files

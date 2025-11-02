@@ -23,10 +23,12 @@ CONSTRAINTS (Requirements the solution must meet):
    - Only one option allowed per defense policy category (NS1, NS2, etc.)
 
 OPTIMIZATION APPROACH:
-Uses a two-stage process for finding the best solution:
+Uses a three-stage process for finding the best solution:
 - Stage 1: Find the maximum possible GDP growth
-- Stage 2: Among all solutions with that maximum GDP, pick the one with the
-           highest revenue surplus (extra fiscal room)
+- Stage 2: Among all solutions with that maximum GDP, pick those that
+           create the most jobs (maximizes employment)
+- Stage 3: Among all solutions with maximum GDP and maximum jobs, pick the one
+           with the highest revenue surplus (maximizes fiscal conservatism)
 
 This ensures we get not just any solution, but the BEST solution.
 """
@@ -49,21 +51,26 @@ logger = get_logger(__name__, level=LogLevel.INFO)
 BINARY_THRESHOLD = 0.5
 
 
-def optimize_policy_selection(  # noqa: PLR0915
+def optimize_policy_selection(  # noqa: PLR0912, PLR0915
     df_clean: pd.DataFrame, ns_groups: dict[str, list[int]], verbose: bool = True
-) -> tuple[pd.DataFrame, float, float]:
+) -> tuple[pd.DataFrame, float, float, float]:
     """
-    Two-stage optimization to find optimal policy package.
+    Three-stage optimization to find optimal policy package.
 
     Stage 1: Maximize GDP subject to revenue surplus requirement and NS mutual exclusivity
         - Finds the maximum achievable GDP growth
         - Ensures total dynamic revenue is at least $600B (substantial surplus)
         - Enforces NS mutual exclusivity: at most one policy per NS group
 
-    Stage 2: Maximize revenue while maintaining optimal GDP
+    Stage 2: Maximize job creation while maintaining optimal GDP
         - Among all solutions that achieve the optimal GDP from Stage 1
-        - Selects the one with the highest revenue surplus
-        - This breaks ties when multiple policy combinations achieve the same GDP
+        - Selects those that create the most jobs
+        - Reduces solution space but may still have multiple alternatives
+
+    Stage 3: Maximize revenue surplus while maintaining optimal GDP and jobs
+        - Among all solutions with max GDP and max jobs from Stages 1 & 2
+        - Selects the one with highest revenue surplus
+        - Provides final tiebreaker for unique solution
 
     National Security (NS) Mutual Exclusivity:
         For each NS group (e.g., NS1 with options NS1A, NS1B, NS1C),
@@ -76,10 +83,11 @@ def optimize_policy_selection(  # noqa: PLR0915
         verbose: If True, prints progress messages
 
     Returns:
-        tuple: (selected_df, gdp_impact, revenue_impact)
+        tuple: (selected_df, gdp_impact, jobs_impact, revenue_impact)
             - selected_df: DataFrame of selected policies
             - gdp_impact: Total GDP impact achieved
-            - revenue_impact: Total revenue impact achieved
+            - jobs_impact: Total jobs created
+            - revenue_impact: Total revenue surplus achieved
     """
     # Extract data arrays from DataFrame for optimization
     n = len(df_clean)
@@ -147,10 +155,10 @@ def optimize_policy_selection(  # noqa: PLR0915
     best_gdp = stage1_model.ObjVal
     logger.debug(f"Stage 1 optimal GDP: {best_gdp * 100:.4f}%")
 
-    # === Stage 2: Maximize revenue while maintaining optimal GDP ===
+    # === Stage 2: Maximize job creation while maintaining optimal GDP ===
     # This stage breaks ties when multiple solutions achieve the same GDP
     if verbose:
-        logger.info("Running optimization (Stage 2: Maximize Revenue)...")
+        logger.info("Running optimization (Stage 2: Maximize Jobs)...")
 
     try:
         stage2_model = Model("Stage2_MaximizeRevenue")
@@ -162,6 +170,9 @@ def optimize_policy_selection(  # noqa: PLR0915
 
     # New decision variables for Stage 2
     x2 = stage2_model.addVars(n, vtype=GRB.BINARY, name="x")
+
+    # Extract jobs data for Stage 2 objective
+    jobs = df_clean[COLUMNS["jobs"]].values
 
     # Constraint: Revenue surplus requirement (same as Stage 1)
     stage2_model.addConstr(
@@ -179,8 +190,8 @@ def optimize_policy_selection(  # noqa: PLR0915
             quicksum(x2[i] for i in idxs) <= 1, name=f"NS_{group}_mutual_exclusivity"
         )
 
-    # Objective: Maximize revenue surplus (among optimal GDP solutions)
-    stage2_model.setObjective(quicksum(revenue[i] * x2[i] for i in range(n)), GRB.MAXIMIZE)
+    # Objective: Maximize job creation (among optimal GDP solutions)
+    stage2_model.setObjective(quicksum(jobs[i] * x2[i] for i in range(n)), GRB.MAXIMIZE)
 
     try:
         stage2_model.optimize()
@@ -204,7 +215,72 @@ def optimize_policy_selection(  # noqa: PLR0915
     # Verify NS mutual exclusivity in solution
     verify_ns_exclusivity(df_clean, ns_groups, selected_indices, verbose)
 
-    return selected_df, best_gdp, stage2_model.ObjVal
+    # Store the optimal jobs value for use in Stage 3
+    best_jobs = stage2_model.ObjVal
+    logger.debug(f"Stage 2 optimal jobs: {best_jobs:,.0f}")
+
+    # === Stage 3: Maximize revenue surplus while maintaining optimal GDP and jobs ===
+    if verbose:
+        logger.info("Running optimization (Stage 3: Maximize Revenue)...")
+
+    try:
+        stage3_model = Model("Stage3_MaximizeRevenue")
+    except GurobiError:
+        logger.exception("Failed to create Stage 3 model")
+        raise
+    if SUPPRESS_GUROBI_OUTPUT:
+        stage3_model.setParam("OutputFlag", 0)
+
+    # New decision variables for Stage 3
+    x3 = stage3_model.addVars(n, vtype=GRB.BINARY, name="x")
+
+    # Constraint: Revenue surplus requirement (same as Stage 1)
+    stage3_model.addConstr(
+        quicksum(revenue[i] * x3[i] for i in range(n)) >= REVENUE_SURPLUS_REQUIREMENT,
+        name="RevenueSurplus",
+    )
+
+    # Constraint: Must achieve exactly the optimal GDP from Stage 1
+    stage3_model.addConstr(quicksum(gdp[i] * x3[i] for i in range(n)) == best_gdp, name="GDPMatch")
+
+    # Constraint: Must achieve exactly the optimal jobs from Stage 2
+    stage3_model.addConstr(
+        quicksum(jobs[i] * x3[i] for i in range(n)) == best_jobs, name="JobsMatch"
+    )
+
+    # NS mutual exclusivity constraints (same as previous stages)
+    for group, idxs in ns_groups.items():
+        stage3_model.addConstr(
+            quicksum(x3[i] for i in idxs) <= 1, name=f"NS_{group}_mutual_exclusivity"
+        )
+
+    # Objective: Maximize revenue surplus (final tiebreaker)
+    stage3_model.setObjective(quicksum(revenue[i] * x3[i] for i in range(n)), GRB.MAXIMIZE)
+
+    try:
+        stage3_model.optimize()
+    except GurobiError:
+        logger.exception("Stage 3 optimization failed")
+        raise
+
+    # Check optimization status
+    if stage3_model.status != GRB.OPTIMAL:
+        logger.error(f"Stage 3 did not find optimal solution. Status: {stage3_model.status}")
+        raise ValueError(
+            f"Stage 3 optimization failed with status {stage3_model.status}. "
+            "This should not happen if Stage 2 succeeded."
+        )
+
+    # Extract final solution
+    selected_indices = [i for i in range(n) if x3[i].X > BINARY_THRESHOLD]
+    selected_df = df_clean.iloc[selected_indices].copy()
+
+    # Verify NS mutual exclusivity in solution
+    verify_ns_exclusivity(df_clean, ns_groups, selected_indices, verbose)
+
+    # Return all three optimized values
+    revenue_impact = stage3_model.ObjVal
+    return selected_df, best_gdp, best_jobs, revenue_impact
 
 
 def main() -> None:
@@ -214,11 +290,18 @@ def main() -> None:
         logger.info("Starting GDP maximization optimization...")
         df_clean, ns_groups = load_policy_data()
 
-        # Run optimization
-        result_df, gdp_impact, revenue_impact = optimize_policy_selection(df_clean, ns_groups)
+        # Run optimization (now returns 4 values including revenue from Stage 3)
+        result_df, gdp_impact, jobs_impact, revenue_impact = optimize_policy_selection(
+            df_clean, ns_groups
+        )
 
         # Display results
         display_results(result_df, gdp_impact, revenue_impact)
+
+        logger.info("\n[Three-Stage Optimization Results]")
+        logger.info(f"  Stage 1 - Optimal GDP: {gdp_impact * 100:.4f}%")
+        logger.info(f"  Stage 2 - Optimal Jobs: {jobs_impact:,.0f}")
+        logger.info(f"  Stage 3 - Optimal Revenue: ${revenue_impact:,.2f}B")
 
         # Save to CSV
         output_file = "max_gdp.csv"

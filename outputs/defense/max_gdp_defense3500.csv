@@ -11,7 +11,6 @@ Option,Long-Run Change in GDP,Capital Stock,Full-Time Equivalent Jobs,Wage Rate,
 S2: Tuition-free two-year community college,0.011,0.0,0,0.0,0.0,0.0,0.0,0.0,-109.0,-109.0,,False
 S3: Increase Pell Grants for low-income students,0.013,0.0,0,0.0,0.0,0.0,0.0,0.0,-80.0,-80.0,,False
 S4: Increase funding for community colleges,0.002,0.0,0,0.0,0.0,0.0,0.0,0.0,-62.0,-62.0,,False
-"S5: Two-years of subsidized tuition for students from families earning less than $125,000 enrolled in a four-year HBCU, TCU, or MSI",0.0005,0.0,0,0.0,0.0,0.0,0.0,0.0,-39.0,-39.0,,False
 "S6: Train, equip, and diversify American teachers",0.0005,0.0,0,0.0,0.0,0.0,0.0,0.0,-9.0,-9.0,,False
 "S7: Increase institutional aid grants to HBCUs, TCUs, and MSIs",0.005,0.0,0,0.0,0.0,0.0,0.0,0.0,-5.0,-5.0,,False
 "S8: Make child care more affordable, invest in high-quality care, and fund training for child care providers",0.012,0.0,0,0.0,0.0,0.0,0.0,0.0,-2.0,-2.0,,False
@@ -32,10 +31,10 @@ NS6B: Allocate $45B / year new funds dedicated to economic statecraft,0.0,0.0,0,
 27: Eliminate the Tax Exclusion for Municipal Bond Interest,-0.0005,-0.0005,-11152,-0.0005,-0.0005,-0.0005,-0.003,-0.006,192.84,191.84,,False
 38: Eliminate the Section 199A Deduction,-0.0005,0.0,0,0.0005,0.0,0.0,0.0,0.0,208.23,200.28,,False
 39: Require Amortization of Advertising Expenses over 10 Years,-0.001,-0.003,-18199,-0.001,-0.002,-0.002,-0.003,-0.005,226.5,206.4,,False
-"41: Repeal Last-in, First-out (LIFO) Inventory Accounting",-0.0005,-0.001,-4926,-0.0005,-0.0005,-0.0005,-0.0005,-0.0005,60.2,56.04,,False
 44: Return the Estate Tax to Clinton-era Levels,-0.002,-0.006,-41415,-0.002,-0.002,-0.002,-0.017,-0.055,887.4,823.9,,False
 48: Increase the Gas Tax by 35 Cents Per Gallon and Inflation Adjust Going Forward,-0.001,-0.001,-103204,-0.005,-0.005,-0.004,-0.004,-0.003,758.34,653.12,,False
 61: Permanently Eliminate the Pease Limitation on Itemized Deductions,0.001,0.001,77730,0.0005,0.001,0.001,0.004,0.01,-160.83,-125.58,,False
+"63: Implement $2,500 per Year Roth-style Universal Savings Accounts",0.0,0.0005,748,0.0,0.0,0.0,0.0,0.0005,-15.08,-14.99,,False
 65: Enact Full Expensing for All Capital Investment,0.023,0.043,441769,0.019,0.021,0.022,0.029,0.043,-1707.41,-1166.66,,False
 66: Maintain Limitation on Interest Deductibility at 30 Percent of EBITDA,0.001,0.002,18832,0.001,0.001,0.001,0.001,0.001,-65.84,-45.9,,False
 67: Eliminate Various Business Tax Expenditures,-0.002,-0.004,-33000,-0.002,-0.011,-0.01,-0.018,-0.031,985.6,926.43,,False
