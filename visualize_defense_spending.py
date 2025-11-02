@@ -37,7 +37,6 @@ Creates 'outputs/defense/defense_spending_analysis.png' with 6 panels:
 - Equity Impact (P20 vs P99 distribution)
 
 Plus detailed console output identifying:
-- Spending level with best overall economic index
 - Maximum GDP point
 - Best revenue surplus point (closest to $600B target)
 - Most equitable distribution point
@@ -212,25 +211,9 @@ for gdp, revenue in zip(metrics["gdp"], metrics["revenue"], strict=False):
     else:
         cost_benefit.append(0)
 
-# Calculate Composite Economic Index with 50% equity weighting
-# Weights: 50% Equity, 20% GDP, 20% Jobs, 10% Revenue
-logger.info("Calculating Composite Economic Index...")
-logger.info("  Weights: 50% Equity + 20% GDP + 20% Jobs + 10% Revenue")
-
-# Normalize each component to 0-100
-gdp_norm = normalize_to_100(metrics["gdp"])
-jobs_norm = normalize_to_100(metrics["jobs"])
-revenue_norm = normalize_to_100(metrics["revenue"])  # Higher revenue surplus = better
-equity_norm = normalize_to_100(equity_ratio)  # Higher equity ratio = better
-
-# Calculate composite index
-composite_index = 0.50 * equity_norm + 0.20 * gdp_norm + 0.20 * jobs_norm + 0.10 * revenue_norm
-
-logger.debug(f"  GDP component range: {gdp_norm.min():.1f} to {gdp_norm.max():.1f}")
-logger.debug(f"  Jobs component range: {jobs_norm.min():.1f} to {jobs_norm.max():.1f}")
-logger.debug(f"  Revenue component range: {revenue_norm.min():.1f} to {revenue_norm.max():.1f}")
-logger.debug(f"  Equity component range: {equity_norm.min():.1f} to {equity_norm.max():.1f}")
-logger.info(f"  Composite index range: {composite_index.min():.1f} to {composite_index.max():.1f}")
+# Note: We do NOT calculate a "composite economic index" as there is no
+# objective way to weight different economic outcomes (GDP vs jobs vs equity).
+# Each metric is analyzed separately to allow users to make their own judgments.
 
 # Create comprehensive visualization with 2x3 grid focused on key metrics
 fig, axes = plt.subplots(2, 3, figsize=(18, 10))
@@ -430,36 +413,12 @@ finally:
     plt.close()
 
 # Additional analysis: Print key insights
-logger.section("KEY INSIGHTS: APPLE-TO-APPLES COMPARISON")
-
-# Find spending level with maximum composite index
-max_index_idx = np.argmax(composite_index)
-logger.info("\n1. Highest Composite Economic Index:")
-logger.info(f"   Defense Spending: ${metrics['spending'][max_index_idx]:,}B")
-logger.info(f"   Composite Index: {composite_index[max_index_idx]:.1f}/100")
-logger.info("   Components:")
-logger.info(
-    f"     - Equity (50%): {equity_norm[max_index_idx]:.1f} -> {0.50 * equity_norm[max_index_idx]:.1f} points"
-)
-logger.info(
-    f"     - GDP (20%): {gdp_norm[max_index_idx]:.1f} -> {0.20 * gdp_norm[max_index_idx]:.1f} points"
-)
-logger.info(
-    f"     - Jobs (20%): {jobs_norm[max_index_idx]:.1f} -> {0.20 * jobs_norm[max_index_idx]:.1f} points"
-)
-logger.info(
-    f"     - Revenue (10%): {revenue_norm[max_index_idx]:.1f} -> {0.10 * revenue_norm[max_index_idx]:.1f} points"
-)
-logger.info("   Actual Values:")
-logger.info(f"     - Equity Ratio: {equity_ratio[max_index_idx]:.2f}x")
-logger.info(f"     - GDP: {metrics['gdp'][max_index_idx]:+.4f}%")
-logger.info(f"     - Jobs: {metrics['jobs'][max_index_idx]:,.0f}")
-logger.info(f"     - Revenue: ${metrics['revenue'][max_index_idx]:,.2f}B")
+logger.section("KEY INSIGHTS")
 
 # Find spending level with maximum GDP
 max_gdp_idx = metrics["gdp"].index(max(metrics["gdp"]))
 baseline_gdp = metrics["gdp"][baseline_idx]
-logger.info("\n2. Maximum GDP Impact:")
+logger.info("\n1. Maximum GDP Impact:")
 logger.info(f"   Defense Spending: ${metrics['spending'][max_gdp_idx]:,}B")
 logger.info(
     f"   GDP Change: {metrics['gdp'][max_gdp_idx]:+.4f}% ({gdp_pp_diff[max_gdp_idx]:+.4f} pp from baseline)"
@@ -468,26 +427,23 @@ logger.info(
     f"   Jobs: {metrics['jobs'][max_gdp_idx]:,.0f} ({jobs_diff[max_gdp_idx]:+,.0f} from baseline)"
 )
 logger.info(f"   Revenue Impact: ${metrics['revenue'][max_gdp_idx]:,.2f}B")
-logger.info(f"   Composite Index: {composite_index[max_gdp_idx]:.1f}/100")
 
 # Find spending level closest to $600B revenue surplus target
 revenue_target_diff = [abs(r - 600) for r in metrics["revenue"]]
 best_revenue_idx = revenue_target_diff.index(min(revenue_target_diff))
-logger.info("\n3. Closest to $600B Revenue Surplus Target:")
+logger.info("\n2. Closest to $600B Revenue Surplus Target:")
 logger.info(f"   Defense Spending: ${metrics['spending'][best_revenue_idx]:,}B")
 logger.info(f"   Revenue Impact: ${metrics['revenue'][best_revenue_idx]:,.2f}B (target: $600B)")
 logger.info(f"   GDP Change: {metrics['gdp'][best_revenue_idx]:+.4f}%")
 logger.info(f"   Jobs: {metrics['jobs'][best_revenue_idx]:,.0f}")
-logger.info(f"   Composite Index: {composite_index[best_revenue_idx]:.1f}/100")
 
 # Find most equitable distribution
 max_equity_idx = equity_ratio.index(max(equity_ratio))
-logger.info("\n4. Most Equitable Distribution:")
+logger.info("\n3. Most Equitable Distribution:")
 logger.info(f"   Defense Spending: ${metrics['spending'][max_equity_idx]:,}B")
 logger.info(f"   Equity Ratio (P20/P99): {equity_ratio[max_equity_idx]:.2f}x")
 logger.info(f"   P20 Benefit: {metrics['p20'][max_equity_idx]:+.4f}")
 logger.info(f"   P99 Benefit: {metrics['p99'][max_equity_idx]:+.4f}")
-logger.info(f"   Composite Index: {composite_index[max_equity_idx]:.1f}/100")
 
 # Find best marginal efficiency (excluding extreme values)
 valid_marginal = [
@@ -496,7 +452,7 @@ valid_marginal = [
 if valid_marginal:
     best_marginal_idx, best_marginal_val = max(valid_marginal, key=lambda x: x[1])
     marginal_spending = marginal_spending_points[best_marginal_idx]
-    logger.info("\n5. Best Marginal Efficiency:")
+    logger.info("\n4. Best Marginal Efficiency:")
     logger.info(
         f"   Defense Spending Range: ${marginal_spending - 250:,.0f}B to ${marginal_spending + 250:,.0f}B"
     )
@@ -504,15 +460,14 @@ if valid_marginal:
 
 # Baseline comparison (if exists)
 if baseline_exists:
-    logger.info(f"\n6. Baseline Metrics (${metrics['spending'][baseline_idx]:,}B):")
-    logger.info(f"   Composite Index: {composite_index[baseline_idx]:.1f}/100")
+    logger.info(f"\n5. Baseline Metrics (${metrics['spending'][baseline_idx]:,}B):")
     logger.info(f"   GDP: {metrics['gdp'][baseline_idx]:+.4f}%")
     logger.info(f"   Jobs: {metrics['jobs'][baseline_idx]:,.0f}")
     logger.info(f"   Revenue: ${metrics['revenue'][baseline_idx]:,.2f}B")
     logger.info(f"   Equity Ratio: {equity_ratio[baseline_idx]:.2f}x")
 
 # Range analysis
-logger.info("\n7. Overall Ranges:")
+logger.info("\n6. Overall Ranges:")
 gdp_range = max(metrics["gdp"]) - min(metrics["gdp"])
 jobs_range = max(metrics["jobs"]) - min(metrics["jobs"])
 revenue_range = max(metrics["revenue"]) - min(metrics["revenue"])
@@ -526,20 +481,15 @@ logger.info(
     f"   Revenue Range: ${revenue_range:,.2f}B (${min(metrics['revenue']):,.2f}B to ${max(metrics['revenue']):,.2f}B)"
 )
 
-logger.section("COMPOSITE INDEX METHODOLOGY")
-logger.info("  • Score 0-100 combining four normalized components:")
-logger.info("    - Equity (50%): P20/P99 ratio normalized to 0-100")
-logger.info("    - GDP (20%): Long-run GDP % change normalized to 0-100")
-logger.info("    - Jobs (20%): Full-time equivalent jobs normalized to 0-100")
-logger.info("    - Revenue (10%): Dynamic 10-year revenue normalized to 0-100")
-logger.info("  • Higher scores indicate better overall economic + equity outcomes")
-logger.info("  • Heavy equity weighting prioritizes distributive fairness")
-logger.info("\nOTHER METRICS:")
+logger.section("METRICS REFERENCE")
 logger.info("  • GDP: Long-run % change in GDP (e.g., 0.14% = 0.14 percentage points)")
 logger.info("  • Jobs: Actual full-time equivalent jobs created")
 logger.info("  • Revenue: Dynamic 10-year revenue in billions of dollars")
-logger.info("  • Equity ratio: P20/P99 (higher = more equitable)")
+logger.info("  • Equity ratio: P20/P99 ratio (higher values = bottom 20% benefits more than top 1%)")
 logger.info("  • 'pp' = percentage points (e.g., from 0.13% to 0.14% = +0.01 pp)")
+logger.info("\nNOTE: This analysis presents individual metrics separately.")
+logger.info("There is no single 'best' scenario - different stakeholders will prioritize")
+logger.info("different outcomes (GDP growth vs jobs vs revenue vs equity).")
 logger.info(
     f"\n[OK] Visualization complete! Check '{output_dir / 'defense_spending_analysis.png'}'"
 )
