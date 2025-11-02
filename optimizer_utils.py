@@ -18,11 +18,18 @@ from typing import Any, Protocol
 from gurobipy import Model, quicksum
 import pandas as pd
 
-from config import COLUMNS, EPSILON, EXCLUDED_POLICIES, POLICY_CO_EXCLUSIONS
+from config import (
+    COLUMNS,
+    EPSILON,
+    EXCLUDED_POLICIES,
+    POLICY_CO_EXCLUSIONS,
+    REVENUE_SURPLUS_REQUIREMENT,
+)
 
 
 class SupportsDebug(Protocol):
     """Protocol for objects that support debug logging."""
+
     def debug(self, message: str) -> None: ...
 
 
@@ -41,7 +48,7 @@ def get_policy_indices_by_codes(df: pd.DataFrame, policy_codes: list[str]) -> li
         List of positional indices for matching policies
 
     Examples:
-        >>> indices = get_policy_indices_by_codes(df, ['11', '36'])
+        >>> indices = get_policy_indices_by_codes(df, ["11", "36"])
         >>> # Returns indices of policies starting with "11:" or "36:"
     """
     indices: list[int] = []
@@ -63,7 +70,7 @@ def add_excluded_policy_constraints(
     x: Any,  # Gurobi tupledict[int, Var]
     df: pd.DataFrame,
     excluded_codes: list[str] | None = None,
-    logger: SupportsDebug | None = None
+    logger: SupportsDebug | None = None,
 ) -> int:
     """
     Add constraints to exclude certain policies from selection.
@@ -100,7 +107,7 @@ def add_fiscal_constraints(
     x: Any,  # Gurobi tupledict[int, Var]
     revenue: Any,  # ArrayLike (list, np.ndarray, or pandas Series)
     indices: range,
-    logger: SupportsDebug | None = None
+    logger: SupportsDebug | None = None,
 ) -> None:
     """
     Add fiscal responsibility constraint (revenue surplus requirement).
@@ -116,12 +123,12 @@ def add_fiscal_constraints(
         logger: Optional logger for progress messages
     """
     model.addConstr(
-        quicksum(x[i] * revenue[i] for i in indices) >= 600,
-        name="RevenueSurplus"
+        quicksum(x[i] * revenue[i] for i in indices) >= REVENUE_SURPLUS_REQUIREMENT,
+        name="RevenueSurplus",
     )
 
     if logger:
-        logger.debug("Added revenue surplus constraint: >= $600B")
+        logger.debug(f"Added revenue surplus constraint: >= ${REVENUE_SURPLUS_REQUIREMENT}B")
 
 
 def add_economic_constraints(
@@ -131,7 +138,7 @@ def add_economic_constraints(
     jobs: Any,  # ArrayLike
     wage: Any,  # ArrayLike
     indices: range,
-    logger: SupportsDebug | None = None
+    logger: SupportsDebug | None = None,
 ) -> None:
     """
     Add economic impact constraints.
@@ -151,22 +158,13 @@ def add_economic_constraints(
         logger: Optional logger for progress messages
     """
     # Capital stock change must be non-negative
-    model.addConstr(
-        quicksum(x[i] * capital[i] for i in indices) >= 0,
-        name="CapitalStock"
-    )
+    model.addConstr(quicksum(x[i] * capital[i] for i in indices) >= 0, name="CapitalStock")
 
     # Job creation must be non-negative
-    model.addConstr(
-        quicksum(x[i] * jobs[i] for i in indices) >= 0,
-        name="Jobs"
-    )
+    model.addConstr(quicksum(x[i] * jobs[i] for i in indices) >= 0, name="Jobs")
 
     # Wage rate change must be non-negative
-    model.addConstr(
-        quicksum(x[i] * wage[i] for i in indices) >= 0,
-        name="WageRate"
-    )
+    model.addConstr(quicksum(x[i] * wage[i] for i in indices) >= 0, name="WageRate")
 
     if logger:
         logger.debug("Added economic constraints (capital, jobs, wage)")
@@ -180,7 +178,7 @@ def add_equity_constraints(
     p80_arr: Any,  # ArrayLike
     p99_arr: Any,  # ArrayLike
     indices: range,
-    logger: SupportsDebug | None = None
+    logger: SupportsDebug | None = None,
 ) -> None:
     """
     Add progressive distribution equity constraints.
@@ -234,7 +232,7 @@ def add_policy_mutual_exclusivity(
     model: Model,
     x: Any,  # Gurobi tupledict[int, Var]
     policy_groups: dict[str, list[int]],
-    logger: SupportsDebug | None = None
+    logger: SupportsDebug | None = None,
 ) -> int:
     """
     Add policy mutual exclusivity constraints.
@@ -256,8 +254,7 @@ def add_policy_mutual_exclusivity(
     for group_name, idxs in policy_groups.items():
         if len(idxs) > 1:  # Only add constraint if group has multiple options
             model.addConstr(
-                quicksum(x[i] for i in idxs) <= 1,
-                name=f"Policy_{group_name}_mutual_exclusivity"
+                quicksum(x[i] for i in idxs) <= 1, name=f"Policy_{group_name}_mutual_exclusivity"
             )
             count += 1
 
@@ -272,7 +269,7 @@ def add_policy_co_exclusion_constraints(
     x: Any,  # Gurobi tupledict[int, Var]
     df: pd.DataFrame,
     co_exclusions: list[tuple[str, str]] | None = None,
-    logger: SupportsDebug | None = None
+    logger: SupportsDebug | None = None,
 ) -> int:
     """
     Add special policy co-exclusion constraints.
@@ -302,8 +299,7 @@ def add_policy_co_exclusion_constraints(
             # If x[A] = 1, then x[B] must be 0
             # Equivalent to: x[A] + x[B] <= 1
             model.addConstr(
-                x[idx_a[0]] + x[idx_b[0]] <= 1,
-                name=f"Policy_{code_a}_excludes_{code_b}"
+                x[idx_a[0]] + x[idx_b[0]] <= 1, name=f"Policy_{code_a}_excludes_{code_b}"
             )
             count += 1
 
@@ -317,7 +313,7 @@ def add_ns_mutual_exclusivity(
     model: Model,
     x: Any,  # Gurobi tupledict[int, Var]
     ns_groups: dict[str, list[int]],
-    logger: SupportsDebug | None = None
+    logger: SupportsDebug | None = None,
 ) -> int:
     """
     Add National Security (NS) mutual exclusivity constraints.
@@ -337,10 +333,7 @@ def add_ns_mutual_exclusivity(
     """
     count = 0
     for group, idxs in ns_groups.items():
-        model.addConstr(
-            quicksum(x[i] for i in idxs) <= 1,
-            name=f"NS_{group}_mutual_exclusivity"
-        )
+        model.addConstr(quicksum(x[i] for i in idxs) <= 1, name=f"NS_{group}_mutual_exclusivity")
         count += 1
 
     if logger and count > 0:
@@ -355,7 +348,7 @@ def add_ns_spending_constraint(
     revenue: Any,  # ArrayLike
     ns_strict_indices: list[int],
     min_ns_spending: int,
-    logger: SupportsDebug | None = None
+    logger: SupportsDebug | None = None,
 ) -> None:
     """
     Add National Security spending requirement constraint.
@@ -375,7 +368,7 @@ def add_ns_spending_constraint(
     """
     model.addConstr(
         quicksum(x[i] * revenue[i] for i in ns_strict_indices) == -min_ns_spending,
-        name="ExactNSSpending"
+        name="ExactNSSpending",
     )
 
     if logger:
@@ -390,7 +383,7 @@ def add_all_constraints(
     policy_groups: dict[str, list[int]],
     ns_strict_indices: list[int],
     min_ns_spending: int,
-    logger: SupportsDebug | None = None
+    logger: SupportsDebug | None = None,
 ) -> None:
     """
     Add all standard constraints to the optimization model.

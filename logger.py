@@ -24,6 +24,7 @@ from typing import TextIO
 
 class LogLevel(IntEnum):
     """Log levels from least to most verbose."""
+
     ERROR = 0
     WARNING = 1
     INFO = 2
@@ -42,7 +43,7 @@ class Logger:
         name: str,
         level: LogLevel = LogLevel.INFO,
         file_path: Path | None = None,
-        stream: TextIO = sys.stdout
+        stream: TextIO = sys.stdout,
     ):
         """
         Initialize logger.
@@ -67,7 +68,7 @@ class Logger:
         if self.file_path:
             try:
                 self.file_path.parent.mkdir(parents=True, exist_ok=True)
-                self._file_handle = self.file_path.open('a', encoding='utf-8')
+                self._file_handle = self.file_path.open("a", encoding="utf-8")
             except Exception as e:
                 self._write(LogLevel.ERROR, f"Failed to open log file: {e}")
 
@@ -103,7 +104,7 @@ class Logger:
             # Write to file if configured
             if self._file_handle:
                 try:
-                    self._file_handle.write(formatted + '\n')
+                    self._file_handle.write(formatted + "\n")
                     self._file_handle.flush()
                 except Exception:
                     pass
@@ -196,11 +197,7 @@ _global_level: LogLevel = LogLevel.INFO
 _global_log_file: Path | None = None
 
 
-def get_logger(
-    name: str,
-    level: LogLevel | None = None,
-    file_path: Path | None = None
-) -> Logger:
+def get_logger(name: str, level: LogLevel | None = None, file_path: Path | None = None) -> Logger:
     """
     Get or create a logger instance.
 
@@ -255,9 +252,7 @@ def set_global_log_file(file_path: Path | None) -> None:
 
 
 def configure_logging(
-    level: LogLevel = LogLevel.INFO,
-    file_path: Path | None = None,
-    verbose: bool = False
+    level: LogLevel = LogLevel.INFO, file_path: Path | None = None, verbose: bool = False
 ) -> None:
     """
     Configure global logging settings.

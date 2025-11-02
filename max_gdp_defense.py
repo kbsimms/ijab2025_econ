@@ -104,53 +104,54 @@ def define_policy_groups(df: pd.DataFrame) -> dict[str, list[int]]:
     policy_groups: dict[str, list[int]] = {}
 
     # 1. Corporate Tax Rate/Structure
-    policy_groups['corporate_tax'] = get_policy_indices_by_codes(df, ['11', '36', '68'])
+    policy_groups["corporate_tax"] = get_policy_indices_by_codes(df, ["11", "36", "68"])
 
     # 2. Gas Tax Increases
-    policy_groups['gas_tax'] = get_policy_indices_by_codes(df, ['47', '48'])
+    policy_groups["gas_tax"] = get_policy_indices_by_codes(df, ["47", "48"])
 
     # 3. Estate Tax
-    policy_groups['estate_tax'] = get_policy_indices_by_codes(df, ['12', '44', '46', '69'])
+    policy_groups["estate_tax"] = get_policy_indices_by_codes(df, ["12", "44", "46", "69"])
 
     # 4. Child Tax Credit - Refundability
-    policy_groups['ctc_refundability'] = get_policy_indices_by_codes(df, ['53', '54'])
+    policy_groups["ctc_refundability"] = get_policy_indices_by_codes(df, ["53", "54"])
 
     # 5. Social Security Payroll Tax Cap
-    policy_groups['ss_payroll_cap'] = get_policy_indices_by_codes(df, ['34', '35'])
+    policy_groups["ss_payroll_cap"] = get_policy_indices_by_codes(df, ["34", "35"])
 
     # 6. Payroll Tax Rate Changes
-    policy_groups['payroll_rate'] = get_policy_indices_by_codes(df, ['4', '33'])
+    policy_groups["payroll_rate"] = get_policy_indices_by_codes(df, ["4", "33"])
 
     # 7. EITC/CDCTC Reforms
-    policy_groups['eitc_reforms'] = get_policy_indices_by_codes(df, ['21', '51', '52', '55', 'S15'])
+    policy_groups["eitc_reforms"] = get_policy_indices_by_codes(df, ["21", "51", "52", "55", "S15"])
 
     # 8. Individual Income Tax Structure
-    policy_groups['individual_tax_structure'] = get_policy_indices_by_codes(df, ['1', '3', '14', '59'])
+    policy_groups["individual_tax_structure"] = get_policy_indices_by_codes(
+        df, ["1", "3", "14", "59"]
+    )
 
     # 9. Child Tax Credit - Comprehensive
-    policy_groups['ctc_comprehensive'] = get_policy_indices_by_codes(df, ['19', '20', '55', 'S13'])
+    policy_groups["ctc_comprehensive"] = get_policy_indices_by_codes(df, ["19", "20", "55", "S13"])
 
     # 10. Section 199A Deduction
-    policy_groups['section_199a'] = get_policy_indices_by_codes(df, ['10', '38'])
+    policy_groups["section_199a"] = get_policy_indices_by_codes(df, ["10", "38"])
 
     # 11. Home Mortgage Interest Deduction
-    policy_groups['mortgage_deduction'] = get_policy_indices_by_codes(df, ['23', '24'])
+    policy_groups["mortgage_deduction"] = get_policy_indices_by_codes(df, ["23", "24"])
 
     # 12. Charitable Deduction
-    policy_groups['charitable_deduction'] = get_policy_indices_by_codes(df, ['25', '58'])
+    policy_groups["charitable_deduction"] = get_policy_indices_by_codes(df, ["25", "58"])
 
     # 13. Capital Gains Tax Rate
-    policy_groups['capital_gains'] = get_policy_indices_by_codes(df, ['5', '29', '30'])
+    policy_groups["capital_gains"] = get_policy_indices_by_codes(df, ["5", "29", "30"])
 
     # 14. Depreciation/Expensing
-    policy_groups['depreciation'] = get_policy_indices_by_codes(df, ['7', '40', '65'])
+    policy_groups["depreciation"] = get_policy_indices_by_codes(df, ["7", "40", "65"])
 
     # 15. Value Added Tax (VAT)
-    policy_groups['vat'] = get_policy_indices_by_codes(df, ['43', '68'])
+    policy_groups["vat"] = get_policy_indices_by_codes(df, ["43", "68"])
 
     # Remove empty groups
     return {k: v for k, v in policy_groups.items() if len(v) > 0}
-
 
 
 def optimize_policy_selection(  # noqa: PLR0912, PLR0915
@@ -158,7 +159,7 @@ def optimize_policy_selection(  # noqa: PLR0912, PLR0915
     ns_groups: dict[str, list[int]],
     ns_strict_indices: list[int],
     min_ns_spending: int = DEFENSE_SPENDING["baseline"],
-    verbose: bool = True
+    verbose: bool = True,
 ) -> tuple[pd.DataFrame, float, float, dict[str, float]]:
     """
     Two-stage optimization with equity, policy, and national security constraints.
@@ -263,10 +264,7 @@ def optimize_policy_selection(  # noqa: PLR0912, PLR0915
     x = stage1_model.addVars(indices, vtype=GRB.BINARY, name="x")
 
     # Objective: Maximize total GDP impact
-    stage1_model.setObjective(
-        quicksum(x[i] * gdp[i] for i in indices),
-        GRB.MAXIMIZE
-    )
+    stage1_model.setObjective(quicksum(x[i] * gdp[i] for i in indices), GRB.MAXIMIZE)
 
     # === Constraints ===
     # Use centralized constraint functions to eliminate code duplication
@@ -275,9 +273,14 @@ def optimize_policy_selection(  # noqa: PLR0912, PLR0915
     # Add all standard constraints using utility function
     # This replaces ~100 lines of duplicate constraint code
     add_all_constraints(
-        stage1_model, x, df, ns_groups, policy_groups,
-        ns_strict_indices, min_ns_spending,
-        logger=logger if verbose else None
+        stage1_model,
+        x,
+        df,
+        ns_groups,
+        policy_groups,
+        ns_strict_indices,
+        min_ns_spending,
+        logger=logger if verbose else None,
     )
 
     # Solve Stage 1
@@ -327,24 +330,23 @@ def optimize_policy_selection(  # noqa: PLR0912, PLR0915
     x2 = stage2_model.addVars(indices, vtype=GRB.BINARY, name="x")
 
     # Objective: Maximize dynamic revenue (break ties from Stage 1)
-    stage2_model.setObjective(
-        quicksum(x2[i] * revenue[i] for i in indices),
-        GRB.MAXIMIZE
-    )
+    stage2_model.setObjective(quicksum(x2[i] * revenue[i] for i in indices), GRB.MAXIMIZE)
 
     # Add all constraints (same as Stage 1, but with x2 variables)
     add_all_constraints(
-        stage2_model, x2, df, ns_groups, policy_groups,
-        ns_strict_indices, min_ns_spending,
-        logger=logger if verbose else None
+        stage2_model,
+        x2,
+        df,
+        ns_groups,
+        policy_groups,
+        ns_strict_indices,
+        min_ns_spending,
+        logger=logger if verbose else None,
     )
 
     # Additional constraint: Fix GDP to the optimal value from Stage 1
     # This ensures we don't sacrifice GDP to gain more revenue
-    stage2_model.addConstr(
-        quicksum(x2[i] * gdp[i] for i in indices) == gdp_star,
-        name="GDPMatch"
-    )
+    stage2_model.addConstr(quicksum(x2[i] * gdp[i] for i in indices) == gdp_star, name="GDPMatch")
 
     # Solve Stage 2
     try:
@@ -359,10 +361,7 @@ def optimize_policy_selection(  # noqa: PLR0912, PLR0915
         error_msg = f"Stage 2 optimization failed with status {stage2_model.status}"
         if verbose:
             logger.error(error_msg)
-        raise ValueError(
-            f"{error_msg}. "
-            "This should not happen if Stage 1 succeeded."
-        )
+        raise ValueError(f"{error_msg}. This should not happen if Stage 1 succeeded.")
 
     # Extract solution: policies where x2[i] > BINARY_THRESHOLD are selected
     # Using BINARY_THRESHOLD handles numerical precision issues in binary variables
@@ -371,15 +370,15 @@ def optimize_policy_selection(  # noqa: PLR0912, PLR0915
 
     # Calculate KPI values
     kpi_dict: dict[str, float] = {
-        'GDP': gdp_star,
-        'Revenue': stage2_model.ObjVal,
-        'Capital': float(sum(selected_df[COLUMNS["capital"]])),
-        'Jobs': float(sum(selected_df[COLUMNS["jobs"]])),
-        'Wage': float(sum(selected_df[COLUMNS["wage"]])),
-        'P20': float(sum(selected_df[COLUMNS["p20"]])),
-        'P40-60': float(sum(selected_df[COLUMNS["p40_60"]])),
-        'P80-100': float(sum(selected_df[COLUMNS["p80_100"]])),
-        'P99': float(sum(selected_df[COLUMNS["p99"]]))
+        "GDP": gdp_star,
+        "Revenue": stage2_model.ObjVal,
+        "Capital": float(sum(selected_df[COLUMNS["capital"]])),
+        "Jobs": float(sum(selected_df[COLUMNS["jobs"]])),
+        "Wage": float(sum(selected_df[COLUMNS["wage"]])),
+        "P20": float(sum(selected_df[COLUMNS["p20"]])),
+        "P40-60": float(sum(selected_df[COLUMNS["p40_60"]])),
+        "P80-100": float(sum(selected_df[COLUMNS["p80_100"]])),
+        "P99": float(sum(selected_df[COLUMNS["p99"]])),
     }
 
     return selected_df, gdp_star, stage2_model.ObjVal, kpi_dict
@@ -437,14 +436,14 @@ def run_full_range() -> None:  # noqa: PLR0915
         raise
 
     # Defense spending levels from config
-    spending_levels = list(range(
-        SPENDING_RANGE["min"],
-        SPENDING_RANGE["max"],
-        SPENDING_RANGE["step"]
-    ))
+    spending_levels = list(
+        range(SPENDING_RANGE["min"], SPENDING_RANGE["max"], SPENDING_RANGE["step"])
+    )
 
     logger.info("Generating optimization results for full defense spending range...")
-    logger.info(f"Range: ${SPENDING_RANGE['min']:,}B to ${SPENDING_RANGE['max']-SPENDING_RANGE['step']:,}B")
+    logger.info(
+        f"Range: ${SPENDING_RANGE['min']:,}B to ${SPENDING_RANGE['max'] - SPENDING_RANGE['step']:,}B"
+    )
     logger.info(f"Increment: ${SPENDING_RANGE['step']:,}B")
     logger.info("=" * 70)
 
@@ -474,8 +473,7 @@ def run_full_range() -> None:  # noqa: PLR0915
             # Track policy decisions
             selected_policies = set(result_df[COLUMNS["option"]].tolist())
             policy_decisions[level] = {
-                policy: 1 if policy in selected_policies else 0
-                for policy in all_policy_names
+                policy: 1 if policy in selected_policies else 0 for policy in all_policy_names
             }
 
             # Track KPI values
@@ -505,7 +503,7 @@ def run_full_range() -> None:  # noqa: PLR0915
         try:
             # Create policy decision matrix (policies as rows, spending levels as columns)
             policy_matrix_df = pd.DataFrame(policy_decisions)
-            policy_matrix_df.index.name = 'Policy'
+            policy_matrix_df.index.name = "Policy"
             policy_matrix_file = "outputs/defense/policy_decisions_matrix.csv"
             policy_matrix_df.to_csv(policy_matrix_file)
             logger.info(f"[OK] Policy decision matrix saved to '{policy_matrix_file}'")
@@ -513,7 +511,7 @@ def run_full_range() -> None:  # noqa: PLR0915
 
             # Create KPI summary matrix
             kpi_matrix_df = pd.DataFrame(kpi_summary).T
-            kpi_matrix_df.index.name = 'Defense_Spending_B'
+            kpi_matrix_df.index.name = "Defense_Spending_B"
             kpi_summary_file = "outputs/defense/economic_effects_summary.csv"
             kpi_matrix_df.to_csv(kpi_summary_file)
             logger.info(f"[OK] Economic effects summary saved to '{kpi_summary_file}'")
@@ -530,7 +528,7 @@ def run_full_range() -> None:  # noqa: PLR0915
                 [sys.executable, "visualize_defense_spending.py"],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             print(result.stdout)  # noqa: T201
             logger.info("[OK] Defense spending visualization complete!")
@@ -547,7 +545,7 @@ def run_full_range() -> None:  # noqa: PLR0915
                 [sys.executable, "visualize_policy_selection.py"],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             print(result.stdout)  # noqa: T201
             logger.info("[OK] Policy selection visualization complete!")
@@ -566,24 +564,18 @@ def main() -> None:
     """Main execution function with comprehensive error handling."""
     # Parse command line arguments
     parser = argparse.ArgumentParser(
-        description='Optimize policy selection with national security and equity constraints.',
-        epilog='Run without arguments to generate full range of scenarios and visualization.'
+        description="Optimize policy selection with national security and equity constraints.",
+        epilog="Run without arguments to generate full range of scenarios and visualization.",
     )
     parser.add_argument(
-        '--spending',
-        type=int,
-        help='Run single optimization with specific NS spending in billions'
+        "--spending", type=int, help="Run single optimization with specific NS spending in billions"
     )
     parser.add_argument(
-        '--all',
-        action='store_true',
-        help='Explicitly run full range of spending levels and generate visualization'
+        "--all",
+        action="store_true",
+        help="Explicitly run full range of spending levels and generate visualization",
     )
-    parser.add_argument(
-        '--verbose',
-        action='store_true',
-        help='Enable debug-level logging'
-    )
+    parser.add_argument("--verbose", action="store_true", help="Enable debug-level logging")
     args = parser.parse_args()
 
     # Configure logging
@@ -605,7 +597,9 @@ def main() -> None:
         logger.exception("Validation error")
         sys.exit(1)
     except GurobiError:
-        logger.exception("Gurobi optimization error. Please check your Gurobi license and model formulation.")
+        logger.exception(
+            "Gurobi optimization error. Please check your Gurobi license and model formulation."
+        )
         sys.exit(1)
     except KeyboardInterrupt:
         logger.warning("Optimization interrupted by user")

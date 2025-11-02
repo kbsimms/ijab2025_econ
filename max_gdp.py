@@ -37,7 +37,7 @@ import traceback
 from gurobipy import GRB, GurobiError, Model, quicksum
 import pandas as pd
 
-from config import COLUMNS, SUPPRESS_GUROBI_OUTPUT
+from config import COLUMNS, REVENUE_SURPLUS_REQUIREMENT, SUPPRESS_GUROBI_OUTPUT
 from logger import LogLevel, get_logger
 from utils import display_results, load_policy_data, verify_ns_exclusivity
 from validation import ValidationError
@@ -50,9 +50,7 @@ BINARY_THRESHOLD = 0.5
 
 
 def optimize_policy_selection(  # noqa: PLR0915
-    df_clean: pd.DataFrame,
-    ns_groups: dict[str, list[int]],
-    verbose: bool = True
+    df_clean: pd.DataFrame, ns_groups: dict[str, list[int]], verbose: bool = True
 ) -> tuple[pd.DataFrame, float, float]:
     """
     Two-stage optimization to find optimal policy package.
@@ -96,10 +94,12 @@ def optimize_policy_selection(  # noqa: PLR0915
     try:
         stage1_model = Model("Stage1_MaximizeGDP")
     except GurobiError:
-        logger.exception("Failed to create Gurobi model. Please ensure Gurobi license is installed and valid.")
+        logger.exception(
+            "Failed to create Gurobi model. Please ensure Gurobi license is installed and valid."
+        )
         raise
     if SUPPRESS_GUROBI_OUTPUT:
-        stage1_model.setParam('OutputFlag', 0)
+        stage1_model.setParam("OutputFlag", 0)
 
     # Decision variables: x[i] = 1 if policy i is selected, 0 otherwise
     x = stage1_model.addVars(n, vtype=GRB.BINARY, name="x")
@@ -107,8 +107,8 @@ def optimize_policy_selection(  # noqa: PLR0915
     # Constraint: Total dynamic revenue must be at least $600B (revenue surplus)
     # This ensures the policy package generates substantial revenue surplus
     stage1_model.addConstr(
-        quicksum(revenue[i] * x[i] for i in range(n)) >= 600,
-        name="RevenueSurplus"
+        quicksum(revenue[i] * x[i] for i in range(n)) >= REVENUE_SURPLUS_REQUIREMENT,
+        name="RevenueSurplus",
     )
 
     # NS mutual exclusivity constraints
@@ -118,15 +118,11 @@ def optimize_policy_selection(  # noqa: PLR0915
         logger.info(f"  Adding {len(ns_groups)} NS mutual exclusivity constraints...")
     for group, idxs in ns_groups.items():
         stage1_model.addConstr(
-            quicksum(x[i] for i in idxs) <= 1,
-            name=f"NS_{group}_mutual_exclusivity"
+            quicksum(x[i] for i in idxs) <= 1, name=f"NS_{group}_mutual_exclusivity"
         )
 
     # Objective: Maximize total GDP impact
-    stage1_model.setObjective(
-        quicksum(gdp[i] * x[i] for i in range(n)),
-        GRB.MAXIMIZE
-    )
+    stage1_model.setObjective(quicksum(gdp[i] * x[i] for i in range(n)), GRB.MAXIMIZE)
 
     try:
         stage1_model.optimize()
@@ -162,36 +158,29 @@ def optimize_policy_selection(  # noqa: PLR0915
         logger.exception("Failed to create Stage 2 model")
         raise
     if SUPPRESS_GUROBI_OUTPUT:
-        stage2_model.setParam('OutputFlag', 0)
+        stage2_model.setParam("OutputFlag", 0)
 
     # New decision variables for Stage 2
     x2 = stage2_model.addVars(n, vtype=GRB.BINARY, name="x")
 
     # Constraint: Revenue surplus requirement (same as Stage 1)
     stage2_model.addConstr(
-        quicksum(revenue[i] * x2[i] for i in range(n)) >= 600,
-        name="RevenueSurplus"
+        quicksum(revenue[i] * x2[i] for i in range(n)) >= REVENUE_SURPLUS_REQUIREMENT,
+        name="RevenueSurplus",
     )
 
     # Constraint: Must achieve exactly the optimal GDP from Stage 1
     # This ensures we don't sacrifice GDP to gain more revenue
-    stage2_model.addConstr(
-        quicksum(gdp[i] * x2[i] for i in range(n)) == best_gdp,
-        name="GDPMatch"
-    )
+    stage2_model.addConstr(quicksum(gdp[i] * x2[i] for i in range(n)) == best_gdp, name="GDPMatch")
 
     # NS mutual exclusivity constraints (same as Stage 1)
     for group, idxs in ns_groups.items():
         stage2_model.addConstr(
-            quicksum(x2[i] for i in idxs) <= 1,
-            name=f"NS_{group}_mutual_exclusivity"
+            quicksum(x2[i] for i in idxs) <= 1, name=f"NS_{group}_mutual_exclusivity"
         )
 
     # Objective: Maximize revenue surplus (among optimal GDP solutions)
-    stage2_model.setObjective(
-        quicksum(revenue[i] * x2[i] for i in range(n)),
-        GRB.MAXIMIZE
-    )
+    stage2_model.setObjective(quicksum(revenue[i] * x2[i] for i in range(n)), GRB.MAXIMIZE)
 
     try:
         stage2_model.optimize()
@@ -226,9 +215,7 @@ def main() -> None:
         df_clean, ns_groups = load_policy_data()
 
         # Run optimization
-        result_df, gdp_impact, revenue_impact = optimize_policy_selection(
-            df_clean, ns_groups
-        )
+        result_df, gdp_impact, revenue_impact = optimize_policy_selection(df_clean, ns_groups)
 
         # Display results
         display_results(result_df, gdp_impact, revenue_impact)
@@ -242,7 +229,9 @@ def main() -> None:
         logger.exception("Validation error")
         sys.exit(1)
     except GurobiError:
-        logger.exception("Gurobi optimization error. Please check your Gurobi license and model formulation.")
+        logger.exception(
+            "Gurobi optimization error. Please check your Gurobi license and model formulation."
+        )
         sys.exit(1)
     except Exception:
         logger.exception("Unexpected error")

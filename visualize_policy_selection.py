@@ -69,7 +69,7 @@ POLICY_DESC_SHORT = 50
 TOP_N_POLICIES = 10
 
 # Configuration
-output_dir = Path('outputs/defense')
+output_dir = Path("outputs/defense")
 try:
     output_dir.mkdir(parents=True, exist_ok=True)
 except Exception:
@@ -77,11 +77,8 @@ except Exception:
     raise
 
 # Defense spending levels from config
-spending_levels = list(range(
-    SPENDING_RANGE["min"],
-    SPENDING_RANGE["max"],
-    SPENDING_RANGE["step"]
-))
+spending_levels = list(range(SPENDING_RANGE["min"], SPENDING_RANGE["max"], SPENDING_RANGE["step"]))
+
 
 def load_policy_data() -> dict[int, dict[str, Any]]:
     """Load policy selection data from all defense spending CSV files."""
@@ -89,51 +86,52 @@ def load_policy_data() -> dict[int, dict[str, Any]]:
 
     logger.info(f"Loading policy selection data for {len(spending_levels)} spending levels...")
     for level in spending_levels:
-        file_path = output_dir / f'max_gdp_defense{level}.csv'
+        file_path = output_dir / f"max_gdp_defense{level}.csv"
         try:
             df = pd.read_csv(file_path)
             # All policies in the CSV are selected policies (the file only contains selected policies)
             selected = df[COLUMNS["option"]].tolist()
-            policy_data[level] = {
-                'df': df,
-                'selected': selected
-            }
+            policy_data[level] = {"df": df, "selected": selected}
             logger.info(f"  [OK] Loaded {file_path.name}: {len(selected)} policies selected")
         except FileNotFoundError:
             logger.warning(f"  [MISSING] {file_path.name}")
-            policy_data[level] = {'df': None, 'selected': []}
+            policy_data[level] = {"df": None, "selected": []}
 
     return policy_data
+
 
 def extract_policy_number(policy_name: str) -> str:
     """Extract policy number/code from policy name for sorting."""
     # Handle different policy types: numbered (1-67), S-codes (S1-S17), NS-codes (NS1-NS7)
-    if policy_name.startswith('NS'):
+    if policy_name.startswith("NS"):
         # Extract NS code (e.g., "NS1B" -> "NS01B" for sorting)
-        parts = policy_name.split(':')[0].strip()
-        num = ''.join(filter(str.isdigit, parts))
-        letter = ''.join(filter(str.isalpha, parts[2:]))  # Get letter after NS
+        parts = policy_name.split(":")[0].strip()
+        num = "".join(filter(str.isdigit, parts))
+        letter = "".join(filter(str.isalpha, parts[2:]))  # Get letter after NS
         return f"NS{int(num):02d}{letter}"
-    if policy_name.startswith('S'):
+    if policy_name.startswith("S"):
         # Extract S code (e.g., "S1" -> "S01")
-        num = ''.join(filter(str.isdigit, policy_name.split(':')[0]))
+        num = "".join(filter(str.isdigit, policy_name.split(":")[0]))
         return f"S{int(num):02d}"
     # Extract regular number (e.g., "1:" -> "001")
-    num = ''.join(filter(str.isdigit, policy_name.split(':')[0]))
+    num = "".join(filter(str.isdigit, policy_name.split(":")[0]))
     if num:
         return f"{int(num):03d}"
     return policy_name
 
-def create_heatmap(policy_data: dict[int, dict[str, Any]]) -> tuple[list[Any], np.ndarray[Any, Any]]:
+
+def create_heatmap(
+    policy_data: dict[int, dict[str, Any]],
+) -> tuple[list[Any], np.ndarray[Any, Any]]:
     """Create a heatmap showing policy selections across defense spending levels (excluding NS policies)."""
     logger.info("Creating policy selection heatmap (excluding National Security policies)...")
 
     # Get all unique policies across all spending levels, excluding NS policies
     all_policies: set[Any] = set()
     for data in policy_data.values():
-        if data['df'] is not None:
+        if data["df"] is not None:
             # Filter out NS policies
-            non_ns_policies = [p for p in data['df']['Option'].tolist() if not p.startswith('NS')]
+            non_ns_policies = [p for p in data["df"]["Option"].tolist() if not p.startswith("NS")]
             all_policies.update(non_ns_policies)
 
     all_policies_sorted: list[Any] = sorted(all_policies, key=extract_policy_number)
@@ -143,9 +141,9 @@ def create_heatmap(policy_data: dict[int, dict[str, Any]]) -> tuple[list[Any], n
     matrix = np.zeros((len(all_policies_sorted), len(spending_levels)))
 
     for col_idx, level in enumerate(spending_levels):
-        selected = policy_data[level]['selected']
+        selected = policy_data[level]["selected"]
         # Filter out NS policies from selections
-        selected_non_ns = [p for p in selected if not p.startswith('NS')]
+        selected_non_ns = [p for p in selected if not p.startswith("NS")]
         for row_idx, policy in enumerate(all_policies_sorted):
             if policy in selected_non_ns:
                 matrix[row_idx, col_idx] = 1
@@ -157,43 +155,50 @@ def create_heatmap(policy_data: dict[int, dict[str, Any]]) -> tuple[list[Any], n
     policy_labels = []
     for policy in all_policies_sorted:
         # Extract policy code and first few words
-        if ':' in policy:
-            code, desc = policy.split(':', 1)
+        if ":" in policy:
+            code, desc = policy.split(":", 1)
             # Limit description to POLICY_DESC_MEDIUM characters
             if len(desc) > POLICY_DESC_MEDIUM:
-                desc = desc[:57] + '...'
+                desc = desc[:57] + "..."
             policy_labels.append(f"{code}:{desc}")
         else:
             policy_labels.append(policy[:POLICY_DESC_LONG])
 
     # Create heatmap
-    sns.heatmap(matrix,
-                cmap=['#f0f0f0', '#2E7D32'],  # Light gray for unselected, green for selected
-                cbar_kws={'label': 'Selected'},
-                yticklabels=policy_labels,
-                xticklabels=[f"${level:+,}B" for level in spending_levels],
-                linewidths=0.5,
-                linecolor='white',
-                ax=ax)
+    sns.heatmap(
+        matrix,
+        cmap=["#f0f0f0", "#2E7D32"],  # Light gray for unselected, green for selected
+        cbar_kws={"label": "Selected"},
+        yticklabels=policy_labels,
+        xticklabels=[f"${level:+,}B" for level in spending_levels],
+        linewidths=0.5,
+        linecolor="white",
+        ax=ax,
+    )
 
-    ax.set_title('Tax & Spending Policy Selection Across Defense Spending Levels\n(Green = Selected, Gray = Not Selected, NS Policies Excluded)',
-                 fontsize=16, fontweight='bold', pad=20)
-    ax.set_xlabel('Defense Spending Change (Billions)', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Policy Options', fontsize=12, fontweight='bold')
+    ax.set_title(
+        "Tax & Spending Policy Selection Across Defense Spending Levels\n(Green = Selected, Gray = Not Selected, NS Policies Excluded)",
+        fontsize=16,
+        fontweight="bold",
+        pad=20,
+    )
+    ax.set_xlabel("Defense Spending Change (Billions)", fontsize=12, fontweight="bold")
+    ax.set_ylabel("Policy Options", fontsize=12, fontweight="bold")
 
     # Rotate x-axis labels
-    plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
 
     # Adjust layout
     plt.tight_layout()
 
     # Save
-    output_file = output_dir / 'policy_selection_heatmap.png'
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    output_file = output_dir / "policy_selection_heatmap.png"
+    plt.savefig(output_file, dpi=300, bbox_inches="tight")
     logger.info(f"[OK] Heatmap saved to '{output_file}'")
     plt.close()
 
     return all_policies_sorted, matrix
+
 
 def create_frequency_chart(all_policies: list[Any], matrix: np.ndarray[Any, Any]) -> pd.DataFrame:
     """Create a bar chart showing how often each policy is selected."""
@@ -203,93 +208,107 @@ def create_frequency_chart(all_policies: list[Any], matrix: np.ndarray[Any, Any]
     frequencies = matrix.sum(axis=1)
 
     # Create DataFrame for easier plotting
-    freq_df = pd.DataFrame({
-        'Policy': all_policies,
-        'Frequency': frequencies,
-        'Percentage': (frequencies / len(spending_levels)) * 100
-    })
+    freq_df = pd.DataFrame(
+        {
+            "Policy": all_policies,
+            "Frequency": frequencies,
+            "Percentage": (frequencies / len(spending_levels)) * 100,
+        }
+    )
 
     # Sort by frequency
-    freq_df = freq_df.sort_values('Frequency', ascending=True)
+    freq_df = freq_df.sort_values("Frequency", ascending=True)
 
     # Categorize policies
     def categorize_policy(policy: str) -> str:
-        if policy.startswith('NS'):
-            return 'National Security'
-        if policy.startswith('S'):
-            return 'Spending'
-        return 'Tax'
+        if policy.startswith("NS"):
+            return "National Security"
+        if policy.startswith("S"):
+            return "Spending"
+        return "Tax"
 
-    freq_df['Category'] = freq_df['Policy'].apply(categorize_policy)
+    freq_df["Category"] = freq_df["Policy"].apply(categorize_policy)
 
     # Create figure with two subplots
     _fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 24))
 
     # Subplot 1: All policies
-    colors = freq_df['Category'].map({
-        'Tax': '#1f77b4',
-        'Spending': '#ff7f0e',
-        'National Security': '#d62728'
-    })
+    colors = freq_df["Category"].map(
+        {"Tax": "#1f77b4", "Spending": "#ff7f0e", "National Security": "#d62728"}
+    )
 
     # Truncate policy names
     policy_labels = []
-    for policy in freq_df['Policy']:
-        if ':' in policy:
-            code, desc = policy.split(':', 1)
+    for policy in freq_df["Policy"]:
+        if ":" in policy:
+            code, desc = policy.split(":", 1)
             if len(desc) > POLICY_DESC_SHORT:
-                desc = desc[:47] + '...'
+                desc = desc[:47] + "..."
             policy_labels.append(f"{code}:{desc}")
         else:
             policy_labels.append(policy[:60])
 
     y_pos = np.arange(len(freq_df))
-    ax1.barh(y_pos, freq_df['Frequency'], color=colors)
+    ax1.barh(y_pos, freq_df["Frequency"], color=colors)
     ax1.set_yticks(y_pos)
     ax1.set_yticklabels(policy_labels, fontsize=7)
-    ax1.set_xlabel('Number of Times Selected (out of 21 spending levels)', fontsize=11, fontweight='bold')
-    ax1.set_title('Policy Selection Frequency\n(All Policies)', fontsize=14, fontweight='bold', pad=15)
-    ax1.grid(axis='x', alpha=0.3)
+    ax1.set_xlabel(
+        "Number of Times Selected (out of 21 spending levels)", fontsize=11, fontweight="bold"
+    )
+    ax1.set_title(
+        "Policy Selection Frequency\n(All Policies)", fontsize=14, fontweight="bold", pad=15
+    )
+    ax1.grid(axis="x", alpha=0.3)
 
     # Add legend
     legend_elements = [
-        Patch(facecolor='#1f77b4', label='Tax Policies'),
-        Patch(facecolor='#ff7f0e', label='Spending Policies'),
-        Patch(facecolor='#d62728', label='National Security Policies')
+        Patch(facecolor="#1f77b4", label="Tax Policies"),
+        Patch(facecolor="#ff7f0e", label="Spending Policies"),
+        Patch(facecolor="#d62728", label="National Security Policies"),
     ]
-    ax1.legend(handles=legend_elements, loc='lower right')
+    ax1.legend(handles=legend_elements, loc="lower right")
 
     # Subplot 2: Category summary
-    category_counts = freq_df.groupby('Category')['Frequency'].agg(['mean', 'sum', 'count'])
-    category_counts['avg_percentage'] = (category_counts['mean'] / len(spending_levels)) * 100
+    category_counts = freq_df.groupby("Category")["Frequency"].agg(["mean", "sum", "count"])
+    category_counts["avg_percentage"] = (category_counts["mean"] / len(spending_levels)) * 100
 
     categories = category_counts.index
     x_pos = np.arange(len(categories))
 
-    bars = ax2.bar(x_pos, category_counts['avg_percentage'],
-                   color=['#d62728', '#ff7f0e', '#1f77b4'])
+    bars = ax2.bar(
+        x_pos, category_counts["avg_percentage"], color=["#d62728", "#ff7f0e", "#1f77b4"]
+    )
     ax2.set_xticks(x_pos)
-    ax2.set_xticklabels(categories, rotation=45, ha='right')
-    ax2.set_ylabel('Average Selection Rate (%)', fontsize=11, fontweight='bold')
-    ax2.set_title('Average Selection Rate by Policy Category', fontsize=14, fontweight='bold', pad=15)
-    ax2.grid(axis='y', alpha=0.3)
+    ax2.set_xticklabels(categories, rotation=45, ha="right")
+    ax2.set_ylabel("Average Selection Rate (%)", fontsize=11, fontweight="bold")
+    ax2.set_title(
+        "Average Selection Rate by Policy Category", fontsize=14, fontweight="bold", pad=15
+    )
+    ax2.grid(axis="y", alpha=0.3)
 
     # Add value labels on bars
-    for i, (bar, val) in enumerate(zip(bars, category_counts['avg_percentage'], strict=True)):
+    for i, (bar, val) in enumerate(zip(bars, category_counts["avg_percentage"], strict=True)):
         height = bar.get_height()
-        ax2.text(bar.get_x() + bar.get_width()/2., height,
-                f'{val:.1f}%\n({int(category_counts.iloc[i]["count"])} policies)',
-                ha='center', va='bottom', fontsize=10, fontweight='bold')
+        ax2.text(
+            bar.get_x() + bar.get_width() / 2.0,
+            height,
+            f"{val:.1f}%\n({int(category_counts.iloc[i]['count'])} policies)",
+            ha="center",
+            va="bottom",
+            fontsize=10,
+            fontweight="bold",
+        )
 
     plt.tight_layout()
 
     # Save
-    output_file = output_dir / 'policy_frequency_analysis.png'
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    output_file = output_dir / "policy_frequency_analysis.png"
+    plt.savefig(output_file, dpi=300, bbox_inches="tight")
     logger.info(f"[OK] Frequency chart saved to '{output_file}'")
     plt.close()
 
     return freq_df
+
 
 def create_defense_substitution_chart(policy_data: dict[int, dict[str, Any]]) -> None:
     """Create a heatmap showing NS (National Security) policy substitutions."""
@@ -298,8 +317,8 @@ def create_defense_substitution_chart(policy_data: dict[int, dict[str, Any]]) ->
     # Extract NS policies across spending levels
     ns_selections: dict[int, list[Any]] = {}
     for level in spending_levels:
-        selected = policy_data[level]['selected']
-        ns_policies = [p for p in selected if p.startswith('NS')]
+        selected = policy_data[level]["selected"]
+        ns_policies = [p for p in selected if p.startswith("NS")]
         ns_selections[level] = ns_policies
 
     # Get all unique NS policies
@@ -325,35 +344,41 @@ def create_defense_substitution_chart(policy_data: dict[int, dict[str, Any]]) ->
     # Create labels for NS policies
     ns_labels = []
     for policy in all_ns_policies:
-        if ':' in policy:
-            code, desc = policy.split(':', 1)
+        if ":" in policy:
+            code, desc = policy.split(":", 1)
             if len(desc) > POLICY_DESC_LONG:
-                desc = desc[:67] + '...'
+                desc = desc[:67] + "..."
             ns_labels.append(f"{code}:{desc}")
         else:
             ns_labels.append(policy[:80])
 
     # Create heatmap
-    sns.heatmap(ns_matrix,
-                cmap=['#ffebee', '#c62828'],  # Light red for unselected, dark red for selected
-                cbar_kws={'label': 'Selected'},
-                yticklabels=ns_labels,
-                xticklabels=[f"${level:+,}B" for level in spending_levels],
-                linewidths=1,
-                linecolor='white',
-                ax=ax)
+    sns.heatmap(
+        ns_matrix,
+        cmap=["#ffebee", "#c62828"],  # Light red for unselected, dark red for selected
+        cbar_kws={"label": "Selected"},
+        yticklabels=ns_labels,
+        xticklabels=[f"${level:+,}B" for level in spending_levels],
+        linewidths=1,
+        linecolor="white",
+        ax=ax,
+    )
 
-    ax.set_title('National Security Policy Substitutions Across Defense Spending Levels',
-                  fontsize=16, fontweight='bold', pad=20)
-    ax.set_xlabel('Defense Spending Change (Billions)', fontsize=12, fontweight='bold')
-    ax.set_ylabel('NS Policy Options', fontsize=12, fontweight='bold')
-    plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
+    ax.set_title(
+        "National Security Policy Substitutions Across Defense Spending Levels",
+        fontsize=16,
+        fontweight="bold",
+        pad=20,
+    )
+    ax.set_xlabel("Defense Spending Change (Billions)", fontsize=12, fontweight="bold")
+    ax.set_ylabel("NS Policy Options", fontsize=12, fontweight="bold")
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
 
     plt.tight_layout()
 
     # Save
-    output_file = output_dir / 'defense_policy_substitution.png'
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    output_file = output_dir / "defense_policy_substitution.png"
+    plt.savefig(output_file, dpi=300, bbox_inches="tight")
     logger.info(f"[OK] Defense substitution heatmap saved to '{output_file}'")
     plt.close()
 
@@ -361,15 +386,22 @@ def create_defense_substitution_chart(policy_data: dict[int, dict[str, Any]]) ->
     ns_counts = [len(ns_selections[level]) for level in spending_levels]
     logger.info("Defense Policy Summary:")
     logger.info(f"  Total unique NS policies: {len(all_ns_policies)}")
-    logger.info(f"  Max NS policies selected: {max(ns_counts)} (at ${spending_levels[ns_counts.index(max(ns_counts))]:+,}B)")
-    logger.info(f"  Min NS policies selected: {min(ns_counts)} (at ${spending_levels[ns_counts.index(min(ns_counts))]:+,}B)")
+    logger.info(
+        f"  Max NS policies selected: {max(ns_counts)} (at ${spending_levels[ns_counts.index(max(ns_counts))]:+,}B)"
+    )
+    logger.info(
+        f"  Min NS policies selected: {min(ns_counts)} (at ${spending_levels[ns_counts.index(min(ns_counts))]:+,}B)"
+    )
 
-def print_policy_insights(freq_df: pd.DataFrame, _all_policies: list[Any], _matrix: np.ndarray[Any, Any]) -> None:
+
+def print_policy_insights(
+    freq_df: pd.DataFrame, _all_policies: list[Any], _matrix: np.ndarray[Any, Any]
+) -> None:
     """Print key insights about policy selections."""
     logger.section("POLICY SELECTION INSIGHTS")
 
     # Always selected policies
-    always_selected = freq_df[freq_df['Frequency'] == len(spending_levels)]['Policy'].tolist()
+    always_selected = freq_df[freq_df["Frequency"] == len(spending_levels)]["Policy"].tolist()
     logger.info(f"\n1. ALWAYS SELECTED ({len(always_selected)} policies):")
     for policy in always_selected[:TOP_N_POLICIES]:  # Show first TOP_N_POLICIES
         logger.info(f"   - {policy}")
@@ -377,7 +409,7 @@ def print_policy_insights(freq_df: pd.DataFrame, _all_policies: list[Any], _matr
         logger.info(f"   ... and {len(always_selected) - TOP_N_POLICIES} more")
 
     # Never selected policies
-    never_selected = freq_df[freq_df['Frequency'] == 0]['Policy'].tolist()
+    never_selected = freq_df[freq_df["Frequency"] == 0]["Policy"].tolist()
     logger.info(f"\n2. NEVER SELECTED ({len(never_selected)} policies):")
     for policy in never_selected[:TOP_N_POLICIES]:  # Show first TOP_N_POLICIES
         logger.info(f"   - {policy}")
@@ -385,21 +417,28 @@ def print_policy_insights(freq_df: pd.DataFrame, _all_policies: list[Any], _matr
         logger.info(f"   ... and {len(never_selected) - TOP_N_POLICIES} more")
 
     # Sometimes selected policies (most variable)
-    mid_freq = freq_df[(freq_df['Frequency'] > 0) & (freq_df['Frequency'] < len(spending_levels))]
-    mid_freq = mid_freq.sort_values('Frequency', ascending=False)
+    mid_freq = freq_df[(freq_df["Frequency"] > 0) & (freq_df["Frequency"] < len(spending_levels))]
+    mid_freq = mid_freq.sort_values("Frequency", ascending=False)
     logger.info(f"\n3. SOMETIMES SELECTED ({len(mid_freq)} policies):")
     logger.info("   Top 10 by selection frequency:")
     for _i, row in mid_freq.head(TOP_N_POLICIES).iterrows():
-        logger.info(f"   - {row['Policy'][:70]}... ({int(row['Frequency'])}/{len(spending_levels)} times)")
+        logger.info(
+            f"   - {row['Policy'][:70]}... ({int(row['Frequency'])}/{len(spending_levels)} times)"
+        )
 
     # Category breakdown
     logger.info("\n4. SELECTION RATE BY CATEGORY:")
-    category_stats = freq_df.groupby(freq_df['Policy'].apply(
-        lambda p: 'NS' if p.startswith('NS') else ('S' if p.startswith('S') else 'Tax')
-    ))['Percentage'].agg(['mean', 'count'])
+    category_stats = freq_df.groupby(
+        freq_df["Policy"].apply(
+            lambda p: "NS" if p.startswith("NS") else ("S" if p.startswith("S") else "Tax")
+        )
+    )["Percentage"].agg(["mean", "count"])
 
     for category, stats in category_stats.iterrows():
-        logger.info(f"   {category:20s}: {stats['mean']:5.1f}% avg selection rate ({int(stats['count'])} policies)")
+        logger.info(
+            f"   {category:20s}: {stats['mean']:5.1f}% avg selection rate ({int(stats['count'])} policies)"
+        )
+
 
 def main() -> None:
     """Main execution function."""
@@ -411,11 +450,12 @@ def main() -> None:
     # Create policy selection heatmap (excluding NS policies)
     _all_policies, _matrix = create_heatmap(policy_data)
 
-    logger.info("\n" + "="*70)
+    logger.info("\n" + "=" * 70)
     logger.info("Visualization complete!")
     logger.info(f"Check '{output_dir}' for output file:")
     logger.info("  - policy_selection_heatmap.png")
-    logger.info("="*70)
+    logger.info("=" * 70)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

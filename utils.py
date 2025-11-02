@@ -5,7 +5,6 @@ This module provides shared functionality used across all optimization scripts,
 including data loading, NS group extraction, result formatting, and validation.
 """
 
-
 import pandas as pd
 
 from config import (
@@ -83,9 +82,7 @@ def load_policy_data(file_path: str = EXCEL_FILE_PATH) -> tuple[pd.DataFrame, di
     df_clean = df_clean[df_clean[COLUMNS["gdp"]].notna()]
 
     # Convert all numeric columns
-    df_clean[NUMERIC_COLUMNS] = df_clean[NUMERIC_COLUMNS].apply(
-        pd.to_numeric, errors='coerce'
-    )
+    df_clean[NUMERIC_COLUMNS] = df_clean[NUMERIC_COLUMNS].apply(pd.to_numeric, errors="coerce")
 
     # Validate DataFrame structure and content
     try:
@@ -124,15 +121,15 @@ def extract_ns_groups(df: pd.DataFrame) -> dict[str, list[int]]:
     """
     # Add indicator for NS-prefixed policies (National Security policies)
     # Matches patterns like: NS1A:, NS2B:, NS7C:, etc.
-    df["is_NS"] = df[COLUMNS["option"]].str.contains(
-        NS_PATTERN, case=False, na=False, regex=True
-    )
+    df["is_NS"] = df[COLUMNS["option"]].str.contains(NS_PATTERN, case=False, na=False, regex=True)
 
     # Build NS groups dictionary
     # IMPORTANT: Use positional index (0-based) not DataFrame index label
     ns_groups: dict[str, list[int]] = {}
     for label_idx, row in df[df["is_NS"]].iterrows():
-        code = row[COLUMNS["option"]].split(":")[0].strip()  # Extract "NS1A" from "NS1A: Description"
+        code = (
+            row[COLUMNS["option"]].split(":")[0].strip()
+        )  # Extract "NS1A" from "NS1A: Description"
         group = code[:-1]  # Extract "NS1" from "NS1A"
         # Find positional index in the full df DataFrame
         pos_in_df = df.index.get_loc(label_idx)
@@ -198,7 +195,7 @@ def verify_ns_exclusivity(
     df: pd.DataFrame,
     ns_groups: dict[str, list[int]],
     selected_indices: list[int],
-    verbose: bool = True
+    verbose: bool = True,
 ) -> bool:
     """
     Verify NS mutual exclusivity in solution.
@@ -226,7 +223,9 @@ def verify_ns_exclusivity(
 
         if len(selected_in_group) > 1:
             policies = [df.iloc[i][COLUMNS["option"]].split(":")[0] for i in selected_in_group]
-            violations.append(f"  X {group}: {len(selected_in_group)} policies selected ({', '.join(policies)})")
+            violations.append(
+                f"  X {group}: {len(selected_in_group)} policies selected ({', '.join(policies)})"
+            )
             all_satisfied = False
         elif len(selected_in_group) == 1:
             policy = df.iloc[selected_in_group[0]][COLUMNS["option"]].split(":")[0]
@@ -265,56 +264,66 @@ def display_results(result_df: pd.DataFrame, _gdp_impact: float, _revenue_impact
 
     if len(positive_revenue) > 0:
         print(f"\n{'REVENUE RAISING POLICIES':^{DISPLAY_WIDTH}}")  # noqa: T201
-        print("-"*DISPLAY_WIDTH)  # noqa: T201
+        print("-" * DISPLAY_WIDTH)  # noqa: T201
         for _, row in positive_revenue.iterrows():
             print(f"  {row[COLUMNS['option']][:POLICY_NAME_MAX_LENGTH]:<{POLICY_NAME_MAX_LENGTH}}")  # noqa: T201
-            print(f"    GDP: {row[COLUMNS['gdp']] * 100:>+7.4f}%  |  Revenue: ${row[COLUMNS['dynamic_revenue']]:>8.2f}B")  # noqa: T201
+            print(
+                f"    GDP: {row[COLUMNS['gdp']] * 100:>+7.4f}%  |  Revenue: ${row[COLUMNS['dynamic_revenue']]:>8.2f}B"
+            )
 
     if len(negative_revenue) > 0:
         print(f"\n{'REVENUE REDUCING POLICIES':^{DISPLAY_WIDTH}}")  # noqa: T201
-        print("-"*DISPLAY_WIDTH)  # noqa: T201
+        print("-" * DISPLAY_WIDTH)  # noqa: T201
         for _, row in negative_revenue.iterrows():
             print(f"  {row[COLUMNS['option']][:POLICY_NAME_MAX_LENGTH]:<{POLICY_NAME_MAX_LENGTH}}")  # noqa: T201
-            print(f"    GDP: {row[COLUMNS['gdp']] * 100:>+7.4f}%  |  Revenue: ${row[COLUMNS['dynamic_revenue']]:>8.2f}B")  # noqa: T201
+            print(
+                f"    GDP: {row[COLUMNS['gdp']] * 100:>+7.4f}%  |  Revenue: ${row[COLUMNS['dynamic_revenue']]:>8.2f}B"
+            )
 
     # Calculate totals for all metrics
-    print("\n" + "="*DISPLAY_WIDTH)  # noqa: T201
+    print("\n" + "=" * DISPLAY_WIDTH)  # noqa: T201
     print("FINAL SUMMARY - TOTAL IMPACT OF SELECTED POLICIES".center(DISPLAY_WIDTH))  # noqa: T201
-    print("="*DISPLAY_WIDTH)  # noqa: T201
+    print("=" * DISPLAY_WIDTH)  # noqa: T201
     print(f"\n{'Economic Impacts':^{DISPLAY_WIDTH}}")  # noqa: T201
-    print("-"*DISPLAY_WIDTH)  # noqa: T201
+    print("-" * DISPLAY_WIDTH)  # noqa: T201
     print(f"  Long-Run Change in GDP:              {result_df[COLUMNS['gdp']].sum() * 100:>+8.4f}%")  # noqa: T201
-    print(f"  Capital Stock:                       {result_df[COLUMNS['capital']].sum() * 100:>+8.4f}%")  # noqa: T201
+    print(
+        f"  Capital Stock:                       {result_df[COLUMNS['capital']].sum() * 100:>+8.4f}%"
+    )
     print(f"  Full-Time Equivalent Jobs:           {result_df[COLUMNS['jobs']].sum():>+10,.0f}")  # noqa: T201
-    print(f"  Wage Rate:                           {result_df[COLUMNS['wage']].sum() * 100:>+8.4f}%")  # noqa: T201
+    print(
+        f"  Wage Rate:                           {result_df[COLUMNS['wage']].sum() * 100:>+8.4f}%"
+    )
 
     print(f"\n{'After-Tax Income Changes (by Income Percentile)':^{DISPLAY_WIDTH}}")  # noqa: T201
-    print("-"*DISPLAY_WIDTH)  # noqa: T201
+    print("-" * DISPLAY_WIDTH)  # noqa: T201
     print(f"  P20 (Bottom 20%):                    {result_df[COLUMNS['p20']].sum() * 100:>+8.4f}%")  # noqa: T201
-    print(f"  P40-60 (Middle Class):               {result_df[COLUMNS['p40_60']].sum() * 100:>+8.4f}%")  # noqa: T201
-    print(f"  P80-100 (Top 20%):                   {result_df[COLUMNS['p80_100']].sum() * 100:>+8.4f}%")  # noqa: T201
+    print(
+        f"  P40-60 (Middle Class):               {result_df[COLUMNS['p40_60']].sum() * 100:>+8.4f}%"
+    )
+    print(
+        f"  P80-100 (Top 20%):                   {result_df[COLUMNS['p80_100']].sum() * 100:>+8.4f}%"
+    )
     print(f"  P99 (Top 1%):                        {result_df[COLUMNS['p99']].sum() * 100:>+8.4f}%")  # noqa: T201
 
     print(f"\n{'Revenue Impacts':^{DISPLAY_WIDTH}}")  # noqa: T201
-    print("-"*DISPLAY_WIDTH)  # noqa: T201
-    print(f"  Static 10-Year Revenue:              ${result_df[COLUMNS['static_revenue']].sum():>10.2f} billion")  # noqa: T201
-    print(f"  Dynamic 10-Year Revenue:             ${result_df[COLUMNS['dynamic_revenue']].sum():>10.2f} billion")  # noqa: T201
+    print("-" * DISPLAY_WIDTH)  # noqa: T201
+    print(
+        f"  Static 10-Year Revenue:              ${result_df[COLUMNS['static_revenue']].sum():>10.2f} billion"
+    )
+    print(
+        f"  Dynamic 10-Year Revenue:             ${result_df[COLUMNS['dynamic_revenue']].sum():>10.2f} billion"
+    )
 
     print(f"\n{'Policy Count':^{DISPLAY_WIDTH}}")  # noqa: T201
-    print("-"*DISPLAY_WIDTH)  # noqa: T201
+    print("-" * DISPLAY_WIDTH)  # noqa: T201
     print(f"  Number of Selected Policies:         {len(result_df):>10}")  # noqa: T201
 
-    print("\n" + "="*DISPLAY_WIDTH + "\n")  # noqa: T201
-
-
-
-
+    print("\n" + "=" * DISPLAY_WIDTH + "\n")  # noqa: T201
 
 
 def display_results_with_distribution(
-    result_df: pd.DataFrame,
-    _gdp_impact: float,
-    _revenue_impact: float
+    result_df: pd.DataFrame, _gdp_impact: float, _revenue_impact: float
 ) -> None:
     """
     Display optimization results with distributional equality info.
@@ -338,33 +347,49 @@ def display_results_with_distribution(
 
     if len(positive_revenue) > 0:
         logger.info(f"\n{'REVENUE RAISING POLICIES':^{DISPLAY_WIDTH}}")
-        logger.info("-"*DISPLAY_WIDTH)
+        logger.info("-" * DISPLAY_WIDTH)
         for _, row in positive_revenue.iterrows():
-            logger.info(f"  {row[COLUMNS['option']][:POLICY_NAME_MAX_LENGTH]:<{POLICY_NAME_MAX_LENGTH}}")
-            logger.info(f"    GDP: {row[COLUMNS['gdp']] * 100:>+7.4f}%  |  Revenue: ${row[COLUMNS['dynamic_revenue']]:>8.2f}B")
+            logger.info(
+                f"  {row[COLUMNS['option']][:POLICY_NAME_MAX_LENGTH]:<{POLICY_NAME_MAX_LENGTH}}"
+            )
+            logger.info(
+                f"    GDP: {row[COLUMNS['gdp']] * 100:>+7.4f}%  |  Revenue: ${row[COLUMNS['dynamic_revenue']]:>8.2f}B"
+            )
 
     if len(negative_revenue) > 0:
         logger.info(f"\n{'REVENUE REDUCING POLICIES':^{DISPLAY_WIDTH}}")
-        logger.info("-"*DISPLAY_WIDTH)
+        logger.info("-" * DISPLAY_WIDTH)
         for _, row in negative_revenue.iterrows():
-            logger.info(f"  {row[COLUMNS['option']][:POLICY_NAME_MAX_LENGTH]:<{POLICY_NAME_MAX_LENGTH}}")
-            logger.info(f"    GDP: {row[COLUMNS['gdp']] * 100:>+7.4f}%  |  Revenue: ${row[COLUMNS['dynamic_revenue']]:>8.2f}B")
+            logger.info(
+                f"  {row[COLUMNS['option']][:POLICY_NAME_MAX_LENGTH]:<{POLICY_NAME_MAX_LENGTH}}"
+            )
+            logger.info(
+                f"    GDP: {row[COLUMNS['gdp']] * 100:>+7.4f}%  |  Revenue: ${row[COLUMNS['dynamic_revenue']]:>8.2f}B"
+            )
 
     # Calculate totals for all metrics
     logger.section("FINAL SUMMARY - TOTAL IMPACT OF SELECTED POLICIES")
     logger.info(f"{'Economic Impacts':^{DISPLAY_WIDTH}}")
-    logger.info("-"*DISPLAY_WIDTH)
-    logger.info(f"  Long-Run Change in GDP:              {result_df[COLUMNS['gdp']].sum() * 100:>+8.4f}%")
-    logger.info(f"  Capital Stock:                       {result_df[COLUMNS['capital']].sum() * 100:>+8.4f}%")
-    logger.info(f"  Full-Time Equivalent Jobs:           {result_df[COLUMNS['jobs']].sum():>+10,.0f}")
-    logger.info(f"  Wage Rate:                           {result_df[COLUMNS['wage']].sum() * 100:>+8.4f}%")
+    logger.info("-" * DISPLAY_WIDTH)
+    logger.info(
+        f"  Long-Run Change in GDP:              {result_df[COLUMNS['gdp']].sum() * 100:>+8.4f}%"
+    )
+    logger.info(
+        f"  Capital Stock:                       {result_df[COLUMNS['capital']].sum() * 100:>+8.4f}%"
+    )
+    logger.info(
+        f"  Full-Time Equivalent Jobs:           {result_df[COLUMNS['jobs']].sum():>+10,.0f}"
+    )
+    logger.info(
+        f"  Wage Rate:                           {result_df[COLUMNS['wage']].sum() * 100:>+8.4f}%"
+    )
 
     logger.info(f"\n{'After-Tax Income Changes (by Income Percentile)':^{DISPLAY_WIDTH}}")
-    logger.info("-"*DISPLAY_WIDTH)
-    p20_total = result_df[COLUMNS['p20']].sum() * 100
-    p40_total = result_df[COLUMNS['p40_60']].sum() * 100
-    p80_total = result_df[COLUMNS['p80_100']].sum() * 100
-    p99_total = result_df[COLUMNS['p99']].sum() * 100
+    logger.info("-" * DISPLAY_WIDTH)
+    p20_total = result_df[COLUMNS["p20"]].sum() * 100
+    p40_total = result_df[COLUMNS["p40_60"]].sum() * 100
+    p80_total = result_df[COLUMNS["p80_100"]].sum() * 100
+    p99_total = result_df[COLUMNS["p99"]].sum() * 100
     logger.info(f"  P20 (Bottom 20%):                    {p20_total:>+8.4f}%")
     logger.info(f"  P40-60 (Middle Class):               {p40_total:>+8.4f}%")
     logger.info(f"  P80-100 (Top 20%):                   {p80_total:>+8.4f}%")
@@ -377,10 +402,14 @@ def display_results_with_distribution(
     logger.info("  (Constraint: must be ≤ 1.00%)")
 
     logger.info(f"\n{'Revenue Impacts':^{DISPLAY_WIDTH}}")
-    logger.info("-"*DISPLAY_WIDTH)
-    logger.info(f"  Static 10-Year Revenue:              ${result_df[COLUMNS['static_revenue']].sum():>10.2f} billion")
-    logger.info(f"  Dynamic 10-Year Revenue:             ${result_df[COLUMNS['dynamic_revenue']].sum():>10.2f} billion")
+    logger.info("-" * DISPLAY_WIDTH)
+    logger.info(
+        f"  Static 10-Year Revenue:              ${result_df[COLUMNS['static_revenue']].sum():>10.2f} billion"
+    )
+    logger.info(
+        f"  Dynamic 10-Year Revenue:             ${result_df[COLUMNS['dynamic_revenue']].sum():>10.2f} billion"
+    )
 
     logger.info(f"\n{'Policy Count':^{DISPLAY_WIDTH}}")
-    logger.info("-"*DISPLAY_WIDTH)
+    logger.info("-" * DISPLAY_WIDTH)
     logger.info(f"  Number of Selected Policies:         {len(result_df):>10}\n")

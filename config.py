@@ -31,7 +31,7 @@ COLUMNS = {
     "p80_100": "P80-100",
     "p99": "P99",
     "static_revenue": "Static 10-Year Revenue (billions)",
-    "dynamic_revenue": "Dynamic 10-Year Revenue (billions)"
+    "dynamic_revenue": "Dynamic 10-Year Revenue (billions)",
 }
 
 # List of numeric columns (for type conversion)
@@ -45,7 +45,7 @@ NUMERIC_COLUMNS = [
     COLUMNS["p80_100"],
     COLUMNS["p99"],
     COLUMNS["static_revenue"],
-    COLUMNS["dynamic_revenue"]
+    COLUMNS["dynamic_revenue"],
 ]
 
 # ============================================================================
@@ -66,6 +66,10 @@ NS_STRICT_PATTERN = r"^NS[1-7][A-Z]:"
 # Suppress Gurobi solver output to console
 SUPPRESS_GUROBI_OUTPUT = True
 
+# Revenue surplus requirement (in billions)
+# All policy packages must generate at least this amount in dynamic revenue
+REVENUE_SURPLUS_REQUIREMENT = 600
+
 # Small epsilon value for strict inequality constraints (e.g., >= becomes > epsilon)
 EPSILON = 1e-5
 
@@ -78,22 +82,22 @@ DISTRIBUTIONAL_TOLERANCE = 0.01
 # Minimum spending requirements for national security policies (in billions)
 
 DEFENSE_SPENDING = {
-    "baseline": 3000,    # $3,000B requirement
-    "increased": 4000    # $4,000B requirement
+    "baseline": 3000,  # $3,000B requirement
+    "increased": 4000,  # $4,000B requirement
 }
 
 # Defense spending range for full analysis (in billions)
 # These values define the range and granularity of defense spending scenarios
 SPENDING_RANGE = {
-    "min": -4000,        # Minimum defense spending change: -$4,000B
-    "max": 6500,         # Maximum defense spending change: +$6,500B (exclusive)
-    "step": 500          # Increment between spending levels: $500B
+    "min": -4000,  # Minimum defense spending change: -$4,000B
+    "max": 6500,  # Maximum defense spending change: +$6,500B (exclusive)
+    "step": 500,  # Increment between spending levels: $500B
 }
 
 # Feasible spending validation limits (in billions)
 FEASIBLE_SPENDING_LIMITS = {
-    "min": -10000,       # Absolute minimum for validation
-    "max": 10000         # Absolute maximum for validation
+    "min": -10000,  # Absolute minimum for validation
+    "max": 10000,  # Absolute maximum for validation
 }
 
 # ============================================================================
@@ -106,7 +110,7 @@ EXCLUDED_POLICIES = [
     "37",  # Corporate Surtax of 5% - excluded per "no new taxes" requirement
     "43",  # Enact a 5% VAT - new tax, therefore excluded
     "49",  # Reinstate the Cadillac Tax - new tax, therefore excluded
-    "68"   # Replace CIT with 5% VAT - new tax structure, therefore excluded
+    "68",  # Replace CIT with 5% VAT - new tax structure, therefore excluded
 ]
 
 # Special policy co-exclusion rules

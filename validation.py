@@ -45,11 +45,10 @@ def validate_excel_file(file_path: str = EXCEL_FILE_PATH) -> None:
 
     if not path.is_file():
         raise ValidationError(
-            f"Path exists but is not a file: {file_path}\n"
-            f"Please provide a valid Excel file path."
+            f"Path exists but is not a file: {file_path}\nPlease provide a valid Excel file path."
         )
 
-    if path.suffix.lower() not in ['.xlsx', '.xls']:
+    if path.suffix.lower() not in [".xlsx", ".xls"]:
         raise ValidationError(
             f"File does not appear to be an Excel file: {file_path}\n"
             f"Expected .xlsx or .xls extension, got: {path.suffix}"
@@ -189,11 +188,7 @@ def validate_ns_policy_name(policy_name: str) -> tuple[bool, str | None]:
     return True, None
 
 
-def validate_policy_indices(
-    indices: list[int],
-    df_length: int,
-    context: str = "policy"
-) -> None:
+def validate_policy_indices(indices: list[int], df_length: int, context: str = "policy") -> None:
     """
     Validate that policy indices are within valid range.
 
@@ -219,9 +214,7 @@ def validate_policy_indices(
 
 
 def validate_spending_level(
-    spending: int,
-    min_spending: int = -10000,
-    max_spending: int = 10000
+    spending: int, min_spending: int = -10000, max_spending: int = 10000
 ) -> None:
     """
     Validate that spending level is within reasonable range.
@@ -235,9 +228,7 @@ def validate_spending_level(
         ValidationError: If spending is out of range
     """
     if not isinstance(spending, (int, float)):
-        raise ValidationError(
-            f"Spending level must be numeric, got: {type(spending).__name__}"
-        )
+        raise ValidationError(f"Spending level must be numeric, got: {type(spending).__name__}")
 
     if spending < min_spending or spending > max_spending:
         raise ValidationError(
@@ -248,9 +239,7 @@ def validate_spending_level(
 
 
 def validate_ns_groups(
-    ns_groups: dict[str, list[int]],
-    df: pd.DataFrame,
-    min_groups: int = 1
+    ns_groups: dict[str, list[int]], df: pd.DataFrame, min_groups: int = 1
 ) -> None:
     """
     Validate NS group structure and indices.
@@ -298,7 +287,7 @@ def validate_optimization_inputs(
     df: pd.DataFrame,
     ns_groups: dict[str, list[int]],
     ns_strict_indices: list[int],
-    min_ns_spending: int
+    min_ns_spending: int,
 ) -> None:
     """
     Comprehensive validation before running optimization.
@@ -367,9 +356,7 @@ def validate_output_directory(directory: Path) -> None:
         ) from e
 
     if not directory.is_dir():
-        raise ValidationError(
-            f"Output path exists but is not a directory: {directory}"
-        )
+        raise ValidationError(f"Output path exists but is not a directory: {directory}")
 
     # Test write permissions
     test_file = directory / ".write_test"
@@ -378,6 +365,5 @@ def validate_output_directory(directory: Path) -> None:
         test_file.unlink()
     except Exception as e:
         raise ValidationError(
-            f"No write permission in output directory: {directory}\n"
-            f"Error: {e!s}"
+            f"No write permission in output directory: {directory}\nError: {e!s}"
         ) from e
