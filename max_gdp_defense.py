@@ -520,9 +520,11 @@ def run_full_range() -> None:  # noqa: PLR0915
         except Exception:
             logger.exception("Failed to save summary files")
 
-        # Run visualization if we have results
+        # Run visualizations if we have results
         logger.info("\n" + "=" * 70)
-        logger.info("Generating visualization...")
+        logger.info("Generating visualizations...")
+
+        # 1. Defense spending analysis visualization
         try:
             result = subprocess.run(
                 [sys.executable, "visualize_defense_spending.py"],
@@ -531,13 +533,33 @@ def run_full_range() -> None:  # noqa: PLR0915
                 check=True
             )
             print(result.stdout)  # noqa: T201
-            logger.info("[OK] Visualization complete!")
+            logger.info("[OK] Defense spending visualization complete!")
         except subprocess.CalledProcessError as e:
-            logger.exception("[FAILED] Visualization failed")
+            logger.exception("[FAILED] Defense spending visualization failed")
             if e.stderr:
                 logger.error(f"Error output: {e.stderr}")  # noqa: TRY400
         except FileNotFoundError:
-            logger.warning("[WARNING] visualize_defense_spending.py not found, skipping visualization")
+            logger.warning("[WARNING] visualize_defense_spending.py not found, skipping")
+
+        # 2. Policy selection heatmap visualization
+        try:
+            result = subprocess.run(
+                [sys.executable, "visualize_policy_selection.py"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            print(result.stdout)  # noqa: T201
+            logger.info("[OK] Policy selection visualization complete!")
+        except subprocess.CalledProcessError as e:
+            logger.exception("[FAILED] Policy selection visualization failed")
+            if e.stderr:
+                logger.error(f"Error output: {e.stderr}")  # noqa: TRY400
+        except FileNotFoundError:
+            logger.warning("[WARNING] visualize_policy_selection.py not found, skipping")
+
+        logger.info("\n" + "=" * 70)
+        logger.info("All visualizations complete!")
 
 
 def main() -> None:
