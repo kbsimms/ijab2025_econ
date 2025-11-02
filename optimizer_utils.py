@@ -6,7 +6,7 @@ reducing code duplication across optimization scripts.
 
 Key functions:
 - add_excluded_policy_constraints(): Force certain policies to not be selected
-- add_fiscal_constraints(): Revenue neutrality requirements
+- add_fiscal_constraints(): Revenue surplus requirements (>= $600B)
 - add_economic_constraints(): Capital, jobs, wage non-negativity
 - add_equity_constraints(): Progressive distribution requirements
 - add_policy_mutual_exclusivity(): Competing policy groups

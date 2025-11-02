@@ -15,8 +15,8 @@ The script uses advanced mathematical optimization (linear programming) to evalu
 all possible combinations of policies and find the one that gives the highest GDP growth.
 
 CONSTRAINTS (Requirements the solution must meet):
-1. Revenue Neutrality: The total package can't increase the federal deficit
-   - All selected policies together must generate at least $0 in revenue
+1. Revenue Surplus Requirement: The total package must generate substantial surplus
+   - All selected policies together must generate at least $600B in revenue
 
 2. National Security Coherence: Can't select conflicting defense policies
    - Example: Can't choose both "increase defense 10%" AND "increase defense 20%"
@@ -57,9 +57,9 @@ def optimize_policy_selection(  # noqa: PLR0915
     """
     Two-stage optimization to find optimal policy package.
 
-    Stage 1: Maximize GDP subject to revenue neutrality and NS mutual exclusivity
+    Stage 1: Maximize GDP subject to revenue surplus requirement and NS mutual exclusivity
         - Finds the maximum achievable GDP growth
-        - Ensures total dynamic revenue is non-negative (revenue neutral or positive)
+        - Ensures total dynamic revenue is at least $600B (substantial surplus)
         - Enforces NS mutual exclusivity: at most one policy per NS group
 
     Stage 2: Maximize revenue while maintaining optimal GDP
@@ -104,11 +104,11 @@ def optimize_policy_selection(  # noqa: PLR0915
     # Decision variables: x[i] = 1 if policy i is selected, 0 otherwise
     x = stage1_model.addVars(n, vtype=GRB.BINARY, name="x")
 
-    # Constraint: Total dynamic revenue must be non-negative (revenue neutral)
-    # This ensures the policy package doesn't increase the deficit
+    # Constraint: Total dynamic revenue must be at least $600B (revenue surplus)
+    # This ensures the policy package generates substantial revenue surplus
     stage1_model.addConstr(
-        quicksum(revenue[i] * x[i] for i in range(n)) >= 0,
-        name="RevenueNeutrality"
+        quicksum(revenue[i] * x[i] for i in range(n)) >= 600,
+        name="RevenueSurplus"
     )
 
     # NS mutual exclusivity constraints
@@ -140,7 +140,7 @@ def optimize_policy_selection(  # noqa: PLR0915
         if stage1_model.status == GRB.INFEASIBLE:
             logger.error("Model is infeasible. Constraints cannot be satisfied simultaneously.")
             logger.error("Possible causes:")
-            logger.error("  - Revenue neutrality constraint too restrictive")
+            logger.error("  - Revenue surplus requirement ($600B) too restrictive")
             logger.error("  - NS mutual exclusivity creates conflicts")
             logger.error("  - Data quality issues in Excel file")
         elif stage1_model.status == GRB.UNBOUNDED:
@@ -167,10 +167,10 @@ def optimize_policy_selection(  # noqa: PLR0915
     # New decision variables for Stage 2
     x2 = stage2_model.addVars(n, vtype=GRB.BINARY, name="x")
 
-    # Constraint: Revenue neutrality (same as Stage 1)
+    # Constraint: Revenue surplus requirement (same as Stage 1)
     stage2_model.addConstr(
-        quicksum(revenue[i] * x2[i] for i in range(n)) >= 0,
-        name="RevenueNeutrality"
+        quicksum(revenue[i] * x2[i] for i in range(n)) >= 600,
+        name="RevenueSurplus"
     )
 
     # Constraint: Must achieve exactly the optimal GDP from Stage 1

@@ -39,7 +39,7 @@ Creates 'outputs/defense/defense_spending_analysis.png' with 6 panels:
 Plus detailed console output identifying:
 - Spending level with best overall economic index
 - Maximum GDP point
-- Best revenue neutrality point
+- Best revenue surplus point (closest to $600B target)
 - Most equitable distribution point
 - Overall ranges for all metrics
 """
@@ -283,7 +283,9 @@ ax2.legend(fontsize=9)
 ax3 = axes[0, 2]
 ax3.plot(metrics['spending'], revenue_abs, 'o-', linewidth=2.5, markersize=8,
          color=colors['revenue'], label='Revenue Impact')
-ax3.axhline(y=0, color='red', linestyle='--', linewidth=2, alpha=0.7,
+ax3.axhline(y=600, color='blue', linestyle='--', linewidth=2, alpha=0.7,
+            label='$600B Surplus Target')
+ax3.axhline(y=0, color='red', linestyle='--', linewidth=1, alpha=0.5,
             label='Revenue Neutral')
 ax3.axvline(x=0, color=colors['baseline'], linestyle='--', linewidth=1.5,
             alpha=0.7, label='Baseline ($0B)')
@@ -389,12 +391,12 @@ logger.info(f"   Jobs: {metrics['jobs'][max_gdp_idx]:,.0f} ({jobs_diff[max_gdp_i
 logger.info(f"   Revenue Impact: ${metrics['revenue'][max_gdp_idx]:,.2f}B")
 logger.info(f"   Composite Index: {composite_index[max_gdp_idx]:.1f}/100")
 
-# Find spending level closest to revenue neutrality
-revenue_abs_values = [abs(r) for r in metrics['revenue']]
-best_revenue_idx = revenue_abs_values.index(min(revenue_abs_values))
-logger.info("\n3. Best Revenue Neutrality:")
+# Find spending level closest to $600B revenue surplus target
+revenue_target_diff = [abs(r - 600) for r in metrics['revenue']]
+best_revenue_idx = revenue_target_diff.index(min(revenue_target_diff))
+logger.info("\n3. Closest to $600B Revenue Surplus Target:")
 logger.info(f"   Defense Spending: ${metrics['spending'][best_revenue_idx]:,}B")
-logger.info(f"   Revenue Impact: ${metrics['revenue'][best_revenue_idx]:,.2f}B")
+logger.info(f"   Revenue Impact: ${metrics['revenue'][best_revenue_idx]:,.2f}B (target: $600B)")
 logger.info(f"   GDP Change: {metrics['gdp'][best_revenue_idx]:+.4f}%")
 logger.info(f"   Jobs: {metrics['jobs'][best_revenue_idx]:,.0f}")
 logger.info(f"   Composite Index: {composite_index[best_revenue_idx]:.1f}/100")

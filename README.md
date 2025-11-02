@@ -6,8 +6,8 @@ Optimization scripts for analyzing economic policy scenarios using linear progra
 
 This project provides optimization scripts for analyzing economic policy scenarios:
 
-1. **max_gdp.py** - Basic GDP maximization with revenue neutrality
-2. **max_gdp_defense.py** - GDP maximization with national security and equity requirements (parameterized for various spending levels)
+1. **max_gdp.py** - Basic GDP maximization with revenue surplus requirement
+2. **max_gdp_defense.py** - GDP maximization with $600B revenue surplus, national security, and equity requirements (parameterized for various spending levels)
 
 Additionally, two visualization scripts are included for analyzing and comparing results:
 
@@ -64,11 +64,13 @@ max Σ(i∈I) g_i * x_i
 
 ### ✅ Constraints
 
-#### 1. Fiscal Responsibility (Deficit Neutrality)
+#### 1. Fiscal Responsibility (Revenue Surplus Requirement)
 
 ```
-Σ(i∈I) r_i * x_i ≥ 0
+Σ(i∈I) r_i * x_i ≥ 600
 ```
+
+This requires the policy package to generate at least $600B in revenue surplus over 10 years.
 
 #### 2. Economic Growth Requirements
 
@@ -343,9 +345,9 @@ ijab_econ_scenario_analysis/
 
 ## Common Features
 
-### 1. Revenue Neutrality
+### 1. Revenue Surplus Requirement
 
-All scripts ensure fiscal responsibility by requiring that the total dynamic revenue impact is non-negative (≥ $0 billion). This prevents selecting policy packages that would increase the federal deficit.
+All scripts ensure fiscal responsibility by requiring that the total dynamic revenue impact is at least $600 billion. This ensures the policy package generates a substantial revenue surplus rather than simply being deficit-neutral.
 
 ### 2. National Security (NS) Mutual Exclusivity
 
@@ -377,7 +379,7 @@ All scripts now use standardized column names from `config.py`, ensuring consist
 
 **Constraints:**
 
-- Revenue neutrality (total dynamic revenue ≥ $0)
+- Revenue surplus requirement (total dynamic revenue ≥ $600B)
 - NS mutual exclusivity (at most one policy per NS group)
 
 **Tiebreaking:** Maximizes revenue surplus among optimal GDP solutions
@@ -424,7 +426,7 @@ python max_gdp.py
 
 **Constraints:**
 
-- **Fiscal:** Revenue neutrality (total dynamic revenue ≥ $0)
+- **Fiscal:** Revenue surplus requirement (total dynamic revenue ≥ $600B)
 - **Economic:** Non-negative capital stock, jobs, and wage rate
 - **Equity:** Progressive distribution
   - P20 and P40-60 must benefit at least as much as P80-100 and P99
@@ -523,7 +525,7 @@ python visualize_defense_spending.py
 4. Prints detailed insights to console including:
    - Spending level with highest composite economic index
    - Maximum GDP impact point
-   - Best revenue neutrality point
+   - Closest to $600B revenue surplus target
    - Most equitable distribution point
 
 **Output:** `outputs/defense/defense_spending_analysis.png` - A comprehensive 6-panel chart
@@ -532,7 +534,7 @@ python visualize_defense_spending.py
 
 - Trade-offs between defense spending and economic growth
 - Relationship between spending levels and job creation
-- Revenue neutrality points across the spending range
+- Revenue surplus levels across the spending range (relative to $600B target)
 - Distributional equity across different spending scenarios
 - Optimal spending levels for various policy objectives
 
