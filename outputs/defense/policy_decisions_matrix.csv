@@ -1,35 +1,35 @@
 Policy,-4000,-3500,-3000,-2500,-2000,-1500,-1000,-500,0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000,5500
 1: Lower Individual Income Tax Rates Across the Board (Lower All Rates by 10%),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-2: Lower the Top Marginal Income Tax Rate (25% Top Rate),1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0
-"3: Consolidate Current Brackets into Three: 10 percent, 25 percent, and 35 percent",1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-4: Reduce Employer- and Employee-Side Payroll Tax by 1 Percentage Point Split (1 Percentage Point Split),1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,0,1,1,1,1
-5: Lower the Top Rate on Capital Gains and Dividends to 15 Percent,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0
-6: Index Capital Gains Realizations to Inflation,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0
+2: Lower the Top Marginal Income Tax Rate (25% Top Rate),0,0,0,0,0,0,1,0,1,1,1,0,0,0,0,0,0,0,0,0
+"3: Consolidate Current Brackets into Three: 10 percent, 25 percent, and 35 percent",1,1,1,1,1,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1
+4: Reduce Employer- and Employee-Side Payroll Tax by 1 Percentage Point Split (1 Percentage Point Split),1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1,1
+5: Lower the Top Rate on Capital Gains and Dividends to 15 Percent,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1,0,0,0,0
+6: Index Capital Gains Realizations to Inflation,1,1,0,0,1,1,1,0,0,1,1,0,0,0,0,1,1,0,0,0
 7: Make 100 Percent Bonus Depreciation Permanent,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 8: Implement Neutral Cost Recovery for Structures,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 9: Cancel the Amortization of Research and Development Expenses,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-10: Make Section 199A Deduction Permanent,1,1,1,1,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0
+10: Make Section 199A Deduction Permanent,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0
 11: Lower the Corporate Tax Rate (Lower to 15%),1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 12: Lower the Estate Tax Rate to 30 Percent,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-"13: Repeal Tariffs Imposed Under Sections 232, 201, and 301",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"13: Repeal Tariffs Imposed Under Sections 232, 201, and 301",1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 "SUBTOTAL, ECONOMY",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 "51: Double EITC for Workers without Qualifying Children to $1,075",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 "52: Reform the EITC for Married and Unmarried Workers, with and without Children",1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 53: Make Child Tax Credit Fully Refundable,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-54: Make Child Tax Credit First Dollar Refundable,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0
+54: Make Child Tax Credit First Dollar Refundable,0,1,1,1,1,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0
 55: Restructure the Child Tax Credit and Earned Income Tax Credit,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-56: Increase the Standard Deduction by 25% for All Filing Groups,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+56: Increase the Standard Deduction by 25% for All Filing Groups,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 57: Restore the Personal Exemption,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 "58: Make Charitable Deduction ""Above-the-Line""",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 "S1: Free, universal pre-kindergarten for all three- and four-year olds",1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0
 S2: Tuition-free two-year community college,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0
 S3: Increase Pell Grants for low-income students,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0
 S4: Increase funding for community colleges,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0
-"S5: Two-years of subsidized tuition for students from families earning less than $125,000 enrolled in a four-year HBCU, TCU, or MSI",1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,0,0
+"S5: Two-years of subsidized tuition for students from families earning less than $125,000 enrolled in a four-year HBCU, TCU, or MSI",1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,0,0
 "S6: Train, equip, and diversify American teachers",1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 "S7: Increase institutional aid grants to HBCUs, TCUs, and MSIs",1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 "S8: Make child care more affordable, invest in high-quality care, and fund training for child care providers",1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-S9: Create a national comprehensive paid family and medical leave program,1,1,1,0,1,1,0,1,1,1,0,0,1,0,0,0,0,0,0,0
+S9: Create a national comprehensive paid family and medical leave program,1,1,1,1,1,1,1,1,1,0,0,1,0,0,0,1,0,0,0,0
 S10: Expand summer Electronic Benefits Transfer to all eligible children nationwide,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0
 S11: Expand free meals for children in the highest poverty districts,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0
 S12: Facilitate re-entry for formerly incarcerated individuals through Supplemental Nutritional Assistance Program (SNAP) eligibility,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0
@@ -64,53 +64,53 @@ NS7B: Make major reforms to base defense spending,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
 NS7C: Conduct fundamental restructuring of base defense spending,1,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 14: Raise Individual Income Tax Rates by 10 Percent,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 15: Repeal the Tax Cuts and Jobs Act (TCJA) Individual Tax Changes,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-"16: Revert to Pre-2018 Individual Income Tax Rates on Income Over $400,000",0,0,0,1,0,0,1,1,0,0,0,0,0,1,1,1,1,1,1,1
-"17: Add a New Bracket of 45 Percent for Income Above $750,000",0,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,1,0,0,0
-18: Create an Additional Flat Individual Income Tax of 5%,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1
-19: Eliminate the Child Tax Credit,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-20: Reduce the Child Tax Credit to $500,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"16: Revert to Pre-2018 Individual Income Tax Rates on Income Over $400,000",0,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,1,0,1,1
+"17: Add a New Bracket of 45 Percent for Income Above $750,000",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+18: Create an Additional Flat Individual Income Tax of 5%,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1
+19: Eliminate the Child Tax Credit,0,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+20: Reduce the Child Tax Credit to $500,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 21: Eliminate the Earned Income Tax Credit,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-22: Eliminate the Federal Income Tax Deduction for State and Local Taxes,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0
-23: Eliminate the Home Mortgage Interest Deduction,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0
-"24: Lower the Home Mortgage Interest Deduction Cap to $500,000 in Principal",1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0
+22: Eliminate the Federal Income Tax Deduction for State and Local Taxes,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0
+23: Eliminate the Home Mortgage Interest Deduction,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"24: Lower the Home Mortgage Interest Deduction Cap to $500,000 in Principal",1,1,1,1,1,1,1,1,0,0,0,1,1,1,0,0,1,0,0,0
 25: Eliminate the Charitable Deduction,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-26: Limit Tax Savings from Itemized Deductions to 28 Percent of Value,1,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
-27: Eliminate the Tax Exclusion for Municipal Bond Interest,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+26: Limit Tax Savings from Itemized Deductions to 28 Percent of Value,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+27: Eliminate the Tax Exclusion for Municipal Bond Interest,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1
 28: Tax Carried Interest as Ordinary Income,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 29: Raise the Top Capital Gains and Dividend Tax Rate to 30%,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 30: Raise Top Capital Gains Rate to 39.6 Percent on Income Above $1 Million,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1
-31: Eliminate the Exclusion of Capital Gains on Principal Residences,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1
-33: Increase Employer- and Employee-side Payroll Tax by 1 Percentage Point Split (1 Percentage Point Split),0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0
+31: Eliminate the Exclusion of Capital Gains on Principal Residences,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,1,1,1
+33: Increase Employer- and Employee-side Payroll Tax by 1 Percentage Point Split (1 Percentage Point Split),0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0
 34: Eliminate the Social Security Payroll Tax Cap,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-"35: Apply the Social Security Payroll Tax to Wages Above $400,000",0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0
+"35: Apply the Social Security Payroll Tax to Wages Above $400,000",0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0
 36: Raise the Corporate Income Tax (28% CIT Rate),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 37: Institute a Corporate Surtax of 5 Percent,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-38: Eliminate the Section 199A Deduction,0,0,0,0,0,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1
-39: Require Amortization of Advertising Expenses over 10 Years,0,0,0,0,0,1,1,0,0,1,1,0,0,1,0,1,1,0,1,1
+38: Eliminate the Section 199A Deduction,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1
+39: Require Amortization of Advertising Expenses over 10 Years,0,0,0,0,0,0,0,0,1,0,0,1,0,1,0,0,0,0,1,1
 40: Return to Alternative Depreciation Schedule (ADS),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-"41: Repeal Last-in, First-out (LIFO) Inventory Accounting",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1
+"41: Repeal Last-in, First-out (LIFO) Inventory Accounting",0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1
 42: Eliminate 1031 Like-Kind Exchanges,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 43: Enact a 5% Value Added Tax,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 44: Return the Estate Tax to Clinton-era Levels,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0
-45: Eliminate Step-Up in Basis on Capital Gains,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0
-46: Lower the Estate and Gift Tax Exemption Amount to $2 Million,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1
+45: Eliminate Step-Up in Basis on Capital Gains,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+46: Lower the Estate and Gift Tax Exemption Amount to $2 Million,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1
 47: Increase the Gas Tax by 15 Cents Per Gallon and Inflation Adjust Going Forward,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-48: Increase the Gas Tax by 35 Cents Per Gallon and Inflation Adjust Going Forward,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+48: Increase the Gas Tax by 35 Cents Per Gallon and Inflation Adjust Going Forward,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 49: Reinstate the Cadillac Tax,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 50: Institute a Carbon Tax ($25 per Ton),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 51: Added cost if nuclear waste storage remains dispersed,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 "SUBTOTAL, FISCAL/ENVIRONMENT",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 59: Tax Individual Incomes at a Flat 30% Rate (20% Flat Tax),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 60: Eliminate the Individual Alternative Minimum Tax,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-61: Permanently Eliminate the Pease Limitation on Itemized Deductions,0,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+61: Permanently Eliminate the Pease Limitation on Itemized Deductions,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1
 "62: Make the 2017 Tax Law Standard Deduction, Personal Exemption, and CTC Permanent",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-"63: Implement $2,500 per Year Roth-style Universal Savings Accounts",1,1,1,1,1,1,0,1,0,1,0,0,1,1,1,1,1,1,0,0
-64: Eliminate the Net Investment Income Tax,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"63: Implement $2,500 per Year Roth-style Universal Savings Accounts",1,1,0,1,1,0,1,1,1,1,1,1,1,0,1,0,1,1,0,0
+64: Eliminate the Net Investment Income Tax,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0
 65: Enact Full Expensing for All Capital Investment,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 66: Maintain Limitation on Interest Deductibility at 30 Percent of EBITDA,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 67: Eliminate Various Business Tax Expenditures,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 68: Replace the Corporate Income Tax with a 5 Percent Value-Added Tax (VAT),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 69: Eliminate Estate and Gift Taxes,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-70: Increase Alcohol Excise Taxes to $16 per Proof Gallon and Index to Inflation,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1,1,0,1,1
+70: Increase Alcohol Excise Taxes to $16 per Proof Gallon and Index to Inflation,0,0,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,1
 "SUBTOTAL, ADMINISTRATIVE",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 TOTAL,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0

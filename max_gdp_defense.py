@@ -129,7 +129,7 @@ def define_policy_groups(df: pd.DataFrame) -> dict[str, list[int]]:
 
     # 8. Individual Income Tax Structure
     policy_groups["individual_tax_structure"] = get_policy_indices_by_codes(
-        df, ["1", "3", "14", "59"]
+        df, ["1", "2", "3", "14", "59"]
     )
 
     # 9. Child Tax Credit - Comprehensive
