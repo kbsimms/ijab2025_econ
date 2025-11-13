@@ -1,0 +1,49 @@
+Option,Long-Run Change in GDP,Capital Stock,Full-Time Equivalent Jobs,Wage Rate,P20,P40-60,P80-100,P99,Static 10-Year Revenue (billions),Dynamic 10-Year Revenue (billions),Y to select,is_NS
+4: Reduce Employer- and Employee-Side Payroll Tax by 1 Percentage Point Split (1 Percentage Point Split),0.002,0.002,179340,0.0,0.005,0.009,0.007,0.003,-651.84,-545.44,,False
+8: Implement Neutral Cost Recovery for Structures,0.012,0.023,230766,0.01,0.011,0.011,0.015,0.021,-10.35,300.98,,False
+9: Cancel the Amortization of Research and Development Expenses,0.001,0.002,19550,0.001,0.001,0.001,0.001,0.002,-131.3,-107.9,,False
+10: Make Section 199A Deduction Permanent,0.002,0.003,57906,0.001,0.002,0.003,0.008,0.006,-438.7,-391.2,,False
+11: Lower the Corporate Tax Rate (Lower to 15%),0.005,0.01,100937,0.004,0.012,0.011,0.017,0.026,-978.94,-847.71,,False
+54: Make Child Tax Credit First Dollar Refundable,-0.0005,-0.0005,-14698,-0.0005,0.02,0.001,0.0,0.0,-37.0,-43.9,,False
+"S1: Free, universal pre-kindergarten for all three- and four-year olds",0.009,0.0,0,0.0,0.0,0.0,0.0,0.0,-200.0,-200.0,,False
+S2: Tuition-free two-year community college,0.011,0.0,0,0.0,0.0,0.0,0.0,0.0,-109.0,-109.0,,False
+S3: Increase Pell Grants for low-income students,0.013,0.0,0,0.0,0.0,0.0,0.0,0.0,-80.0,-80.0,,False
+S4: Increase funding for community colleges,0.002,0.0,0,0.0,0.0,0.0,0.0,0.0,-62.0,-62.0,,False
+"S5: Two-years of subsidized tuition for students from families earning less than $125,000 enrolled in a four-year HBCU, TCU, or MSI",0.0005,0.0,0,0.0,0.0,0.0,0.0,0.0,-39.0,-39.0,,False
+"S6: Train, equip, and diversify American teachers",0.0005,0.0,0,0.0,0.0,0.0,0.0,0.0,-9.0,-9.0,,False
+"S7: Increase institutional aid grants to HBCUs, TCUs, and MSIs",0.005,0.0,0,0.0,0.0,0.0,0.0,0.0,-5.0,-5.0,,False
+"S8: Make child care more affordable, invest in high-quality care, and fund training for child care providers",0.012,0.0,0,0.0,0.0,0.0,0.0,0.0,-2.0,-2.0,,False
+S9: Create a national comprehensive paid family and medical leave program,0.001,0.0,0,0.0,0.0,0.0,0.0,0.0,-225.0,-225.0,,False
+S10: Expand summer Electronic Benefits Transfer to all eligible children nationwide,0.002,0.0,0,0.0,0.0,0.0,0.0,0.0,-25.0,-25.0,,False
+S11: Expand free meals for children in the highest poverty districts,0.005,0.0,0,0.0,0.0,0.0,0.0,0.0,-17.0,-17.0,,False
+S12: Facilitate re-entry for formerly incarcerated individuals through Supplemental Nutritional Assistance Program (SNAP) eligibility,0.0005,0.0,0,0.0,0.0,0.0,0.0,0.0,-10.0,-10.0,,False
+S14: Extend expanded ACA premiums & tax credits from the American Rescue Plan,-0.009,0.0,0,0.0,0.0,0.0,0.0,0.0,-200.0,-200.0,,False
+S17: Cancel student loan debt relief (Biden executive action),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,400.0,400.0,,False
+NS1A: Double funds dedicated to Europe & NATO (including Ukraine),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-1000.0,-1000.0,,True
+NS2A: Double funds dedicated to the Middle East (including Iran & Israel),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-1000.0,-1000.0,,True
+NS3A: Double funds dedicated to the Indo-Pacific (including Taiwan),0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-1000.0,-1000.0,,True
+NS4A: Double funds dedicated to protecting the homeland,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-1000.0,-1000.0,,True
+NS5A: Double funds dedicated to advanced national security technology,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-1000.0,-1000.0,,True
+NS6A: Allocate $90B/year new funds dedicated to economic statecraft,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,-1000.0,-1000.0,,True
+NS7A: Make significant incremental reforms to base defense spending,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,500.0,500.0,,True
+15: Repeal the Tax Cuts and Jobs Act (TCJA) Individual Tax Changes,0.0,0.0,0,0.0,0.0,0.0,0.0,0.0,829.72,648.75,,False
+"16: Revert to Pre-2018 Individual Income Tax Rates on Income Over $400,000",-0.0005,0.0,0,0.0005,0.0,0.0,0.0,0.0,107.29,85.43,,False
+"17: Add a New Bracket of 45 Percent for Income Above $750,000",-0.002,-0.02,-165888,-0.001,-0.002,-0.002,-0.007,-0.021,576.22,441.05,,False
+21: Eliminate the Earned Income Tax Credit,0.002,0.003,273081,0.0005,-0.105,0.001,0.002,0.002,607.79,772.99,,False
+22: Eliminate the Federal Income Tax Deduction for State and Local Taxes,-0.007,-0.013,-492252,-0.003,-0.006,-0.008,-0.027,-0.034,1563.55,1283.17,,False
+25: Eliminate the Charitable Deduction,-0.001,-0.002,-90202,-0.0005,-0.001,-0.002,-0.009,-0.014,747.4,694.52,,False
+26: Limit Tax Savings from Itemized Deductions to 28 Percent of Value,-0.001,-0.001,-63819,-0.0005,-0.001,-0.001,-0.004,-0.011,212.96,184.19,,False
+27: Eliminate the Tax Exclusion for Municipal Bond Interest,-0.0005,-0.0005,-11152,-0.0005,-0.0005,-0.0005,-0.003,-0.006,192.84,191.84,,False
+28: Tax Carried Interest as Ordinary Income,-0.0005,-0.0005,-9347,-0.0005,0.0,0.0,-0.0005,-0.001,20.33,18.5,,False
+29: Raise the Top Capital Gains and Dividend Tax Rate to 30%,-0.0005,-0.001,-10024,-0.0005,-0.0005,-0.001,-0.001,-0.003,67.0,61.82,,False
+"35: Apply the Social Security Payroll Tax to Wages Above $400,000",-0.002,-0.002,-226014,0.0,-0.002,-0.002,-0.007,-0.021,822.79,686.04,,False
+39: Require Amortization of Advertising Expenses over 10 Years,-0.001,-0.003,-18199,-0.001,-0.002,-0.002,-0.003,-0.005,226.5,206.4,,False
+42: Eliminate 1031 Like-Kind Exchanges,-0.0005,-0.0005,-2500,-0.0005,-0.0005,-0.0005,-0.0005,-0.0005,13.84,13.63,,False
+44: Return the Estate Tax to Clinton-era Levels,-0.002,-0.006,-41415,-0.002,-0.002,-0.002,-0.017,-0.055,887.4,823.9,,False
+45: Eliminate Step-Up in Basis on Capital Gains,-0.001,-0.001,-8489,-0.001,-0.001,-0.001,-0.002,-0.005,124.18,118.46,,False
+48: Increase the Gas Tax by 35 Cents Per Gallon and Inflation Adjust Going Forward,-0.001,-0.001,-103204,-0.005,-0.005,-0.004,-0.004,-0.003,758.34,653.12,,False
+59: Tax Individual Incomes at a Flat 30% Rate (20% Flat Tax),0.013,-0.03,1211491,0.003,-0.026,-0.118,-0.079,0.009,1148.8,1625.93,,False
+65: Enact Full Expensing for All Capital Investment,0.023,0.043,441769,0.019,0.021,0.022,0.029,0.043,-1707.41,-1166.66,,False
+66: Maintain Limitation on Interest Deductibility at 30 Percent of EBITDA,0.001,0.002,18832,0.001,0.001,0.001,0.001,0.001,-65.84,-45.9,,False
+67: Eliminate Various Business Tax Expenditures,-0.002,-0.004,-33000,-0.002,-0.011,-0.01,-0.018,-0.031,985.6,926.43,,False
+70: Increase Alcohol Excise Taxes to $16 per Proof Gallon and Index to Inflation,-0.0005,-0.0005,-22718,-0.001,-0.001,-0.001,-0.001,-0.0005,136.07,129.14,,False

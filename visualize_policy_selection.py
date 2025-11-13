@@ -47,6 +47,7 @@ INTERPRETING THE HEATMAP:
 - Vertical patterns = Major policy substitution at specific spending thresholds
 """
 
+import argparse
 from pathlib import Path
 from typing import Any
 
@@ -68,15 +69,9 @@ POLICY_DESC_MEDIUM = 60
 POLICY_DESC_SHORT = 50
 TOP_N_POLICIES = 10
 
-# Configuration
-output_dir = Path("outputs/defense")
-try:
-    output_dir.mkdir(parents=True, exist_ok=True)
-except Exception:
-    logger.exception("Cannot create output directory")
-    raise
-
-# Defense spending levels from config
+# Global configuration (set by main)
+output_dir: Path
+file_prefix: str
 spending_levels = list(range(SPENDING_RANGE["min"], SPENDING_RANGE["max"], SPENDING_RANGE["step"]))
 
 
@@ -86,7 +81,7 @@ def load_policy_data() -> dict[int, dict[str, Any]]:
 
     logger.info(f"Loading policy selection data for {len(spending_levels)} spending levels...")
     for level in spending_levels:
-        file_path = output_dir / f"max_gdp_defense{level}.csv"
+        file_path = output_dir / f"{file_prefix}{level}.csv"
         try:
             df = pd.read_csv(file_path)
             # All policies in the CSV are selected policies (the file only contains selected policies)
@@ -442,6 +437,36 @@ def print_policy_insights(
 
 def main() -> None:
     """Main execution function."""
+    global output_dir, file_prefix
+
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description="Visualize policy selection patterns across defense spending levels."
+    )
+    parser.add_argument(
+        "--senate",
+        action="store_true",
+        help="Use Senate portfolio optimization results from outputs/senate/",
+    )
+    args = parser.parse_args()
+
+    # Configure paths based on mode
+    if args.senate:
+        output_dir = Path("outputs/senate")
+        file_prefix = "policy_portfolio_"
+        logger.info("Using Senate portfolio optimization results")
+    else:
+        output_dir = Path("outputs/defense")
+        file_prefix = "max_gdp_defense"
+        logger.info("Using defense optimization results")
+
+    # Ensure output directory exists
+    try:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        logger.exception("Cannot create output directory")
+        raise
+
     logger.section("POLICY SELECTION ANALYSIS")
 
     # Load data
